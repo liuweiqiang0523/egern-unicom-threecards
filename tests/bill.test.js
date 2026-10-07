@@ -10,7 +10,7 @@ test('per-slot aliases truncate safely and phone suffix is explicitly opt-in acr
   const m=mock();for(const p of phones)await capture(m,p);m.ctx.widgetFamily=family;
   m.ctx.env={CARD_SLOT:'2',CARD1_NAME:'不要选错',CARD2_NAME:'工作卡',SHOW_PHONE_SUFFIX:value};
   const w=await run(m.ctx),s=content(w);assert.ok(!JSON.stringify(w).includes(phones[1]));assert.ok(!s.includes('不要选错'));
-  if(family!=='accessoryCircular'){assert.ok(s.includes('工作卡'));assert.equal(s.includes('··0002'),[true,'true','on','1'].includes(value));}
+  if(family!=='accessoryCircular'){assert.ok(s.includes('工作卡'));assert.equal(s.includes('· 尾号0002'),[true,'true','on','1'].includes(value));}
  }
  const m=mock();await capture(m);
  const s=content(await run({...m.ctx,env:{CARD1_NAME:'abcdefghijklmno'}}));assert.ok(s.includes('abcdefghijkl'));assert.ok(!s.includes('abcdefghijklm'));
@@ -50,7 +50,7 @@ test('lock fee warning leaves flow and voice normal and circular focuses exact f
 });
 test('small heading constrains long title alias and suffix without losing success time',async()=>{
  const m=mock();await capture(m);m.ctx.widgetFamily='systemSmall';m.ctx.env={WIDGET_TITLE:'标题'.repeat(12),CARD1_NAME:'工作联通'.repeat(5),SHOW_PHONE_SUFFIX:'true'};
- const w=await run(m.ctx),heading=w.children[0],label=heading.children[1];assert.equal(label.flex,1);assert.equal(label.maxLines,1);assert.ok(label.minScale>0);assert.match(label.text,/··0001$/);assert.match(heading.children.at(-1).text,/^\d{2}:\d{2}$/);assert.ok(!JSON.stringify(w).includes(phones[0]));
+ const w=await run(m.ctx),heading=w.children[0],label=heading.children[1];assert.equal(label.flex,1);assert.equal(label.maxLines,1);assert.ok(label.minScale>0);assert.equal(heading.children[2].text,'· 尾号0001');assert.equal(heading.children[2].minScale,1);assert.match(heading.children.at(-1).text,/^\d{2}:\d{2}$/);assert.ok(!JSON.stringify(w).includes(phones[0]));
 });
 test('normal light and dark capsule text meets contrast on opaque widget base',async()=>{
  const rgb=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));

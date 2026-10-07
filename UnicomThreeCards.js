@@ -113,7 +113,7 @@ function text(value,size=11,color=COLORS.value,weight='regular') {
 const spacer=()=>({type:'spacer'});
 function row(children,gap=6) {return {type:'stack',direction:'row',alignItems:'center',gap,children};}
 function widget(children,translucent=false) {
- return {type:'widget',backgroundColor:translucent?{light:'#FFFFFFB3',dark:'#2C2C2EB3'}:COLORS.bg,padding:[10,12,10,12],gap:8,refreshAfter:new Date(Date.now()+FRESH).toISOString(),children};
+ return {type:'widget',backgroundColor:translucent?{light:'#FFFFFFB3',dark:'#2C2C2EB3'}:COLORS.bg,padding:[8,12,8,12],gap:6,refreshAfter:new Date(Date.now()+FRESH).toISOString(),children};
 }
 const CAPSULE_COLORS=[{light:'#FFF1E5',dark:'#FFB97626'},{light:'#F2EDFF',dark:'#BEA3FF26'},{light:'#EAF4FF',dark:'#86BFFF26'}];
 const SLOT_COLORS=[{light:'#CA7547',dark:'#F6B485'},{light:'#8062AE',dark:'#C2ACF1'},{light:'#4584B6',dark:'#92C5ED'}];
@@ -124,37 +124,45 @@ function balanceThreshold(value) {
 }
 function lowBalance(d,threshold) {return threshold>0&&d.unit==='元'&&Number(d.value)<threshold;}
 function capsule(d,index,center=false,warning=false) {
- return {type:'stack',direction:'column',alignItems:'center',...(center?{}:{flex:1}),padding:[7,center?20:8,7,center?20:8],gap:3,backgroundColor:warning?WARNING.background:CAPSULE_COLORS[index],borderRadius:14,children:[text(d.title,10,COLORS.muted,'light'),row([text(d.value,22,warning?WARNING.value:COLORS.value,'semibold'),text(d.unit,10,COLORS.muted)],3)]};
+ return {type:'stack',direction:'column',alignItems:'center',...(center?{}:{flex:1}),padding:[7,center?20:8,7,center?20:8],gap:3,backgroundColor:warning?WARNING.background:CAPSULE_COLORS[index],borderRadius:14,children:[text(d.title,10,{light:'#51515A',dark:'#D8D8DF'},'medium'),row([text(d.value,22,warning?WARNING.value:COLORS.value,'semibold'),text(d.unit,10,COLORS.muted)],3)]};
 }
 function footer(status) {
  return row([spacer(),text(status,9,COLORS.muted)]);
 }
-function lockWidget(result,identity,family,translucent,title,threshold) {
+function identityTexts(title,alias,suffix,family) {
+ // Reserve natural width for suffix/time; only the identity takes remaining width.
+ const compact=family==='systemSmall'||family.startsWith('accessory');
+ const limit=compact?(suffix?5:8):12;
+ const short=Array.from(alias).slice(0,limit).join('');
+ return [{...text((title?title+' · ':'')+short,12,COLORS.value,'semibold'),flex:1},...(suffix?[{...text('· 尾号'+suffix,10,COLORS.value,'medium'),minScale:1}]:[])];
+}
+function lockWidget(result,labels,family,translucent,threshold) {
  // Lock-screen containers must not inherit spacious home-screen padding.
  const lock=children=>({...widget(children,translucent),padding:family==='accessoryInline'?0:4,gap:2});
  const d=result.data;
- if(!d) return lock([{...text(title+' · '+identity+' · '+result.status,11,COLORS.accent),maxLines:family==='accessoryInline'?1:2}]);
+ if(!d) return lock(family==='accessoryInline'?[row([...labels,text(result.status,11,COLORS.accent)],2)]:[row(labels,3),{...text(result.status,11,COLORS.accent),maxLines:2}]);
  const label=v=>v.title+' '+v.value+v.unit;
  const feeColor=lowBalance(d[0],threshold)?WARNING.value:COLORS.value;
  const status=result.status==='已更新'?'': ' · '+result.status;
- if(family==='accessoryInline') return lock([row([text(title+' · '+identity,11),text(label(d[0]),11,feeColor),text(' · '+label(d[2])+status,11)],2)]);
+ if(family==='accessoryInline') return lock([row([...labels,text(label(d[0]),11,feeColor),text(' · '+label(d[2])+status,11)],2)]);
  // Circular: only flow fits; its exact API label takes priority over a heading.
  if(family==='accessoryCircular') return lock([text(d[2].title,9),{...text(d[2].value,20,COLORS.value,'semibold'),textAlign:'center'},text(d[2].unit+status,9)]);
- return lock([row([{...text(title+' · '+identity,12),flex:1},text(label(d[0]),12,feeColor)],2),text(label(d[1]),10),text(label(d[2])+status,10)]);
+ return lock([row([...labels,text(label(d[0]),12,feeColor)],2),text(label(d[1]),10),text(label(d[2])+status,10)]);
 }
 export default async function(ctx) {
  if(ctx.request) {capture(ctx);return;}
  const selection=String(ctx.env?.CARD_SLOT||'1');
  if(!['1','2','3'].includes(selection)) return widget([text('CARD_SLOT 只能为 1 / 2 / 3')]);
  const result=await displayResult(ctx,selection);
- const identity=cardName(ctx.env?.['CARD'+selection+'_NAME'],selection)+(result.suffix?' ··'+result.suffix:'');
+ const alias=cardName(ctx.env?.['CARD'+selection+'_NAME'],selection);
  const family=['systemSmall','systemMedium','systemLarge','systemExtraLarge','accessoryInline','accessoryCircular','accessoryRectangular'].includes(ctx.widgetFamily)?ctx.widgetFamily:'systemSmall';
  const translucent=enabled(ctx.env?.TRANSLUCENT);
- const title=safeTitle(ctx.env?.WIDGET_TITLE,'中国联通');
- if(family.startsWith('accessory')) return lockWidget(result,identity,family,translucent,title,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD));
+ const title=safeTitle(ctx.env?.WIDGET_TITLE,enabled(ctx.env?.SHOW_BRAND)?'中国联通':'');
+ const labels=identityTexts(title,alias,result.suffix,family);
+ if(family.startsWith('accessory')) return lockWidget(result,labels,family,translucent,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD));
  const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
- const heading=row([{type:'stack',width:6,height:6,borderRadius:3,backgroundColor:SLOT_COLORS[Number(selection)-1],children:[]},{...text(title+' · '+identity,12,COLORS.value,'semibold'),flex:1},spacer(),text(time,10,COLORS.muted)]);
- if(!result.data) return widget([heading,spacer(),{...text(result.status,13,COLORS.accent,'medium'),maxLines:2},text('打开联通 App 切换号码并查询余额',10,COLORS.muted),spacer()],translucent);
+ const heading=row([{type:'stack',width:6,height:6,borderRadius:3,backgroundColor:SLOT_COLORS[Number(selection)-1],children:[]},...labels,{...text(time,10,COLORS.muted),minScale:1}]);
+ if(!result.data) return widget([heading,{...text(result.status,13,COLORS.accent,'medium'),maxLines:2},text('打开联通 App 切换号码并查询余额',10,COLORS.muted)],translucent);
  const d=result.data;
  const warning=lowBalance(d[0],balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD));
  const content=family==='systemSmall'?[row([spacer(),capsule(d[0],0,true,warning),spacer()],0),row(d.slice(1).map((v,i)=>capsule(v,i+1)),7)]:[row(d.map((v,i)=>capsule(v,i,false,i===0&&warning)),8)];

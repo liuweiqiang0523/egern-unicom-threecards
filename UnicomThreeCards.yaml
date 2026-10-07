@@ -14,8 +14,15 @@ env_schema:
       - "false"
   WIDGET_TITLE:
     name: 组件标题
-    description: 自定义安全短标题，最多24字符；留空恢复中国联通。模块设置优先于单个组件。
-    default_value: 中国联通
+    description: 自定义安全短标题，最多24字符；明确设置时始终保留。留空由显示品牌开关决定。
+    default_value: ""
+  SHOW_BRAND:
+    name: 显示品牌前缀
+    description: 默认关闭，仅显示别名或卡序；开启使用中国联通前缀，有自定义标题时优先保留该标题。
+    default_value: "false"
+    options:
+      - "true"
+      - "false"
   CARD1_NAME:
     name: 卡1别名
     description: 留空显示卡1；安全短文本，截取前12字符；不接受完整手机号。

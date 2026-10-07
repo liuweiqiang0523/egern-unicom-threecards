@@ -10,10 +10,10 @@ const families=['systemSmall','systemMedium','systemLarge','systemExtraLarge','a
 const nodes=w=>[w,...(w.children||[]).flatMap(nodes)];
 const content=w=>nodes(w).filter(n=>n.type==='text').map(n=>n.text).join('');
 test('module exposes real native settings, no slot override or imaginary API options',()=>{
- assert.deepEqual(Object.keys(moduleConfig.env_schema).sort(),['CARD1_NAME','CARD2_NAME','CARD3_NAME','LOW_BALANCE_THRESHOLD','SHOW_PHONE_SUFFIX','TRANSLUCENT','WIDGET_TITLE']);
+ assert.deepEqual(Object.keys(moduleConfig.env_schema).sort(),['CARD1_NAME','CARD2_NAME','CARD3_NAME','LOW_BALANCE_THRESHOLD','SHOW_BRAND','SHOW_PHONE_SUFFIX','TRANSLUCENT','WIDGET_TITLE']);
  assert.deepEqual(moduleConfig.env_schema.TRANSLUCENT.options,['true','false']);
  assert.equal(moduleConfig.env_schema.TRANSLUCENT.default_value,'false');
- assert.equal(moduleConfig.env_schema.WIDGET_TITLE.default_value,'中国联通');
+ assert.equal(moduleConfig.env_schema.WIDGET_TITLE.default_value,'');assert.deepEqual(moduleConfig.env_schema.SHOW_BRAND.options,['true','false']);assert.equal(moduleConfig.env_schema.SHOW_BRAND.default_value,'false');
  assert.deepEqual(moduleConfig.env_schema.SHOW_PHONE_SUFFIX.options,['true','false']);assert.equal(moduleConfig.env_schema.SHOW_PHONE_SUFFIX.default_value,'false');assert.equal(moduleConfig.env_schema.LOW_BALANCE_THRESHOLD.default_value,'10');
  for(const key of ['CARD1_NAME','CARD2_NAME','CARD3_NAME'])assert.equal(moduleConfig.env_schema[key].default_value,'');
  assert.ok(!moduleConfig.env?.CARD_SLOT);
@@ -52,10 +52,10 @@ test('all sizes retain title semantics, supported attributes and bounded lock la
 test('title safety, long title adaptation and reset apply without modifying stored accounts',async()=>{
  const m=mock();await capture(m);await run(m.ctx);const before=[...m.db];
  for(const title of [undefined,'',null,{},'x'.repeat(25),'secret\nvalue','Cookie=secret','https://example.invalid','13000000001','\u202ehidden']){
-  const w=await run({...m.ctx,env:{WIDGET_TITLE:title}});assert.match(content(w),/中国联通/);
+  const w=await run({...m.ctx,env:{WIDGET_TITLE:title}});assert.match(content(w),/卡1/);assert.ok(!content(w).includes('中国联通'));
  }
  const title='自定义联通标题'.repeat(3);const w=await run({...m.ctx,env:{WIDGET_TITLE:title}});assert.ok(content(w).includes(title));assert.equal(w.children[0].children[1].flex,1);
- const reset=await run({...m.ctx,env:{}});assert.match(content(reset),/中国联通/);assert.equal(reset.backgroundColor.light,'#FFFFFF');assert.deepEqual([...m.db],before);
+ const reset=await run({...m.ctx,env:{}});assert.match(content(reset),/卡1/);assert.ok(!content(reset).includes('中国联通'));assert.equal(reset.backgroundColor.light,'#FFFFFF');assert.deepEqual([...m.db],before);
 });
 test('booleans including invalid values are safe on all no-data and login-error sizes',async()=>{
  for(const family of families)for(const state of ['empty','auth'])for(const value of [true,'true','on','1',false,'false','off','0',undefined,{},'invalid']){

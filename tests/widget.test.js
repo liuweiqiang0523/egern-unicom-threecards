@@ -139,5 +139,5 @@ test('optional translucent and title env parse false strings safely',async()=>{
   const m=mock();await capture(m);m.ctx.env={TRANSLUCENT:value,WIDGET_TITLE:'我的联通'};
   const w=await run(m.ctx);assert.equal(w.backgroundColor.light,[true,'true','on','1'].includes(value)?'#FFFFFFB3':'#FFFFFF');assert.match(renderedText(w),/我的联通/);
  }
- const m=mock();m.ctx.env.WIDGET_TITLE={};assert.match(renderedText(await run(m.ctx)),/中国联通/);
+ const m=mock();m.ctx.env.WIDGET_TITLE={};assert.match(renderedText(await run(m.ctx)),/卡1/);
 });
