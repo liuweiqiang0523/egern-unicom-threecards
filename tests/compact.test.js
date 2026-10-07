@@ -50,7 +50,7 @@ test('all settings retain exact titles, alias and cache timestamp without rerequ
  const m=mock();for(const p of phones) await capture(m,p);
  await run({...m.ctx,env:{VIEW:'all'}});const records=[1,2,3].map(i=>m.ctx.storage.getJSON('egern.unicom3.v1.slot.'+i));
  const t=await run({...m.ctx,env:{VIEW:'all',TRANSLUCENT:'true',WIDGET_TITLE:'我的三卡',SHOW_BRAND:'true',CARD1_NAME:'双不限',SHOW_PHONE_SUFFIX:'true',LOW_BALANCE_THRESHOLD:'0'}});
- assert.equal(m.calls.length,3);assert.equal(t.backgroundColor.light,'#F3F4F6B3');assert.ok(texts(t).includes('我的三卡'));assert.ok(texts(t).includes('· 尾号0001'));
+ assert.equal(m.calls.length,3);assert.equal(t.backgroundColor.light,'#F3F4F6B3');assert.ok(texts(t).includes('我的三卡'));assert.ok(texts(t).includes('· 0001'));
  assert.deepEqual([1,2,3].map(i=>m.ctx.storage.getJSON('egern.unicom3.v1.slot.'+i)),records);
 });
 test('medium summary is a three-column metric row inside one neutral rounded card',async()=>{
@@ -61,9 +61,9 @@ test('medium summary is a three-column metric row inside one neutral rounded car
  assert.equal(cardHolder(t).gap,7); // card-to-card spacing keeps the three blocks reading apart
  assert.equal(cardHolder(t).flex,1); // the holder is the widget's one flexible child
  cards(t).forEach((card,i)=>{
-  assert.equal(card.type,'stack');assert.equal(card.gap,2);assert.equal(card.flex,1); // cards share the height
+  assert.equal(card.type,'stack');assert.equal(card.gap,0);assert.equal(card.flex,1); // cards share the height
   // The whole card is one rounded block: slot wash over the base + a brighter 1px outline.
-  assert.equal(card.borderRadius,16);assert.equal(card.borderWidth,1);assert.deepEqual(card.padding,[0,7,0,7]);
+  assert.equal(card.borderRadius,16);assert.equal(card.borderWidth,1);assert.equal(card.padding,0);assert.deepEqual(card.children[1].padding,[0,7,0,9]);
   assert.equal(card.backgroundColor.light,'#F8F9FB');
   assert.equal(card.backgroundColor.dark,'#1D1F23');
   assert.equal(card.borderColor.light,'#DDE1E7');

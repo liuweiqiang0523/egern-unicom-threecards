@@ -10,7 +10,7 @@ test('reference header time is latest successful account time, including cached 
  const t=await run({...m.ctx,widgetFamily:'systemLarge',env:{VIEW:'all'}});
  const fmt=t=>new Date(t).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'});
  assert.equal(t.children[0].children.at(-1).text,fmt(stamp-60000));
- cards(t).forEach((c,i)=>assert.equal(c.children[1].children[0].children.at(-1).text,fmt(stamp-(i+1)*60000)));
+ cards(t).forEach((c,i)=>assert.equal(c.children[1].children[0].children.at(-1).text,fmt(stamp-(i+1)*60000)+' · 缓存'));
  assert.equal(t.children[0].children.at(-2).src,'sf-symbol:arrow.clockwise');
  const empty=await run({...mock().ctx,widgetFamily:'systemLarge',env:{VIEW:'all'}});assert.equal(empty.children[0].children.at(-1).type,'spacer');
 });

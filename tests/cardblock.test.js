@@ -25,7 +25,7 @@ test('every home summary card is one neutral rounded block with a 1px outline an
    // the dark wash must stay the specified subtle 0x14..0x1F range, not a solid fill
    assert.equal(card.children[1].children[0].children[0].backgroundColor.dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
    assert.equal(card.backgroundColor.dark.length,7,'neutral opaque card, no slot wash');
-   assert.ok(Array.isArray(card.padding),family);
+   assert.equal(card.padding,0,family);assert.ok(Array.isArray(card.children[1].padding),family);
   });
  }
 });

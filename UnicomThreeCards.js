@@ -145,7 +145,7 @@ const BAR_H=4, SEP_H=2;
 const CARD_RADIUS=16, CARD_GAP=7, TITLE_GAP=2, CARD_PAD=[4,7,4,7];
 const UNIT_MB={KB:1/1024,M:1,MB:1,G:1024,GB:1024,T:1024*1024,TB:1024*1024};
 // thead/ticon: the summary's slim top title bar (text / icon), kept small so the cards get the room.
-const FLOW_SIZES={systemSmall:{name:8,unit:7,title:7,value:8,label:7,tag:5,time:7,icon:6,thead:11,ticon:12,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:7,unit:6,title:5,value:7,label:5,tag:4,time:6,icon:5,thead:12,ticon:13,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:13,unit:9,title:10,value:18,label:10,tag:6,time:9,icon:7,thead:18,ticon:19,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:14,unit:10,title:11,value:19,label:11,tag:7,time:10,icon:8,thead:19,ticon:20,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
+const FLOW_SIZES={systemSmall:{name:8,unit:7,title:7,value:8,label:7,tag:5,time:7,icon:6,thead:11,ticon:12,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:7,unit:6,title:5,value:7,label:5,tag:4,time:6,icon:5,thead:12,ticon:13,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:13,unit:9,title:10,value:18,label:10,tag:6,time:9,icon:7,thead:15,ticon:16,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:14,unit:10,title:11,value:19,label:11,tag:7,time:10,icon:8,thead:16,ticon:17,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
 // Which resource the API title describes; never inferred from the value itself.
 function flowSemantic(title) {
  if(typeof title!=='string') return 'neutral';
@@ -240,7 +240,7 @@ function lockWidget(result,labels,family,translucent,threshold) {
 function compactIdentity(alias,suffix,family,s) {
  const limit=family==='systemSmall'?(suffix?5:8):12;
  const parts=[{...text(Array.from(alias).slice(0,limit).join(''),s.name,COLORS.value,'semibold'),minScale:0.6}];
- if(suffix) parts.push({...text('· 尾号'+suffix,s.name-2,COLORS.value,'medium'),minScale:1});
+ if(suffix) parts.push({...text('· '+suffix,s.name-2,COLORS.value,'medium'),minScale:1});
  return parts;
 }
 // Three-column reference layout: identity/time, fee + voice + flow, bottom bar.
@@ -252,12 +252,19 @@ function compactCard(ctx,result,selection,family,metric) {
  const alias=cardName(ctx.env?.['CARD'+selection+'_NAME'],selection);
  const dot={type:'stack',width:s.icon,height:s.icon,borderRadius:2,backgroundColor:SUMMARY_COLORS[slot],children:[]};
  const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
- const idRow=row([dot,...compactIdentity(alias,lock?'':result.suffix,family,s),spacer(),{...text(time,s.time,SUMMARY_MUTED),minScale:1}],4);
+ const cached=!!result.data&&result.status!=='已更新';
+ const clock=cached?time+' · '+(result.status.startsWith('旧缓存')?'旧缓存':'缓存'):time;
+ const idRow=row([dot,...compactIdentity(alias,lock?'':result.suffix,family,s),spacer(),{...text(clock,s.time,cached?{light:'#8A6243',dark:'#D99A70'}:SUMMARY_MUTED),minScale:cached?0.6:1}],4);
  const roomy=family==='systemLarge'||family==='systemExtraLarge';
  // Reference rows are ~90pt apart at a normalized 402pt screenshot width. Fixed row heights
  // fence off recursive flex inflation; excess iOS frame height belongs below the whole panel.
  const cardHeight=family==='systemExtraLarge'?86:82;
- const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:s.gap,padding:family==='systemMedium'?[0,7,0,7]:roomy?[6,8,6,8]:CARD_PAD,...(roomy?{height:cardHeight}:{flex:1}),backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[{type:'stack',direction:'column',width:2,height:small?26:family==='systemMedium'?30:60,borderRadius:1,backgroundGradient:{type:'linear',colors:[{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'},SUMMARY_COLORS[slot],{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'}],stops:[0,0.5,1],startPoint:{x:0.5,y:0},endPoint:{x:0.5,y:1}},children:[]},{type:'stack',direction:'column',gap:family==='systemMedium'?1:roomy?0:s.gap,flex:1,children}]});
+ // Move padding to the content, preserving its exact x/y coordinates. The rail now touches
+ // the left border; transparent corner ends keep it inside the rounded outline without clipping APIs.
+ const pad=family==='systemMedium'?[0,7,0,7]:roomy?[6,8,6,8]:CARD_PAD;
+ const railHeight=roomy?cardHeight-2:small?26:30;
+ const edge=roomy?16/railHeight:0;
+ const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:0,padding:0,...(roomy?{height:cardHeight}:{flex:1}),backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[{type:'stack',direction:'column',width:2,height:railHeight,borderRadius:1,backgroundGradient:{type:'linear',colors:[{light:SUMMARY_COLORS[slot].light+(roomy?'00':'26'),dark:SUMMARY_COLORS[slot].dark+(roomy?'00':'26')},...(roomy?[{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'}]:[]),SUMMARY_COLORS[slot],...(roomy?[{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'}]:[]),{light:SUMMARY_COLORS[slot].light+(roomy?'00':'26'),dark:SUMMARY_COLORS[slot].dark+(roomy?'00':'26')}],stops:roomy?[0,edge,0.5,1-edge,1]:[0,0.5,1],startPoint:{x:0.5,y:0},endPoint:{x:0.5,y:1}},children:[]},{type:'stack',direction:'column',padding:[pad[0],pad[1],pad[2],pad[3]+s.gap],gap:family==='systemMedium'?1:roomy?0:s.gap,flex:1,children}]});
  if(!result.data) return lock?{type:'stack',direction:'column',gap:2,children:[idRow,text(result.status,9,COLORS.accent)]}:block([idRow,text(result.status,small?9:11,COLORS.accent)]);
  const [fee,voice,flow]=result.data;
  if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...compactIdentity(alias,'',family,s),text(flow.value,s.value,COLORS.value,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED)],3)]};
