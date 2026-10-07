@@ -92,6 +92,8 @@ async function load(ctx,slot) {
  }
 }
 function enabled(value) {return [true,'true','on','1'].includes(value);}
+// SHOW_BRAND now gates the summary top title bar. Only an explicit false/off/0 hides it; unset means show.
+function brandHidden(value) {return value===false||value===0||['false','off','0'].includes(value);}
 function cardName(value,selection) {
  if(typeof value!=='string') return '卡'+selection;
  const clean=value.trim();
@@ -107,6 +109,8 @@ async function displayResult(ctx,selection) {
 }
 // Egern's documented JSON DSL; alpha colors do not request an iOS blur material.
 const COLORS={bg:{light:'#FFFFFF',dark:'#2C2C2E'},value:{light:'#1C1C1E',dark:'#FFFFFF'},muted:{light:'#62626A',dark:'#C4C4CC'},accent:{light:'#E60012',dark:'#FF375F'}};
+// Same PNG file as the module icon; referenced by URL so nothing is inlined into the script.
+const ICON_URL='https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/assets/unicom-icon.png';
 function text(value,size=11,color=COLORS.value,weight='regular') {
  return {type:'text',text:value,font:{size,weight},textColor:color,maxLines:1,minScale:0.55};
 }
@@ -290,8 +294,12 @@ async function compactWidget(ctx) {
   return {...widget(family==='accessoryInline'?[text(summary.join(' · '),9)]:summary.map(s=>text(s,9)),enabled(ctx.env?.TRANSLUCENT)),padding:family==='accessoryInline'?0:4,gap:1};
  }
  const metrics=flowMetrics(ctx,results);
- const title=lock?'':safeTitle(ctx.env?.WIDGET_TITLE,enabled(ctx.env?.SHOW_BRAND)?'中国联通':'');
- return {...widget([...(title?[row([{...text(title,9,COLORS.muted,'medium'),flex:1}])]:[]),...order.map(i=>compactCard(ctx,results[i],i+1,family,metrics[i]))],enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:small?6:family==='systemMedium'?5:8,gap:lock?2:CARD_GAP};
+ // Summary-only top title bar: module icon + a plain text title. WIDGET_TITLE wins when safe, else
+ // 中国联通; an explicit SHOW_BRAND=false/off/0 hides the whole bar (including the icon). Time stays
+ // on each card, never here. The single-card path below keeps its own inline heading and no such bar.
+ const title=lock?'':safeTitle(ctx.env?.WIDGET_TITLE,brandHidden(ctx.env?.SHOW_BRAND)?'':'中国联通');
+ const titleBar=title?[row([{type:'image',src:ICON_URL,width:15,height:15,borderRadius:3,resizeMode:'contain'},{...text(title,13,COLORS.value,'semibold'),flex:1}],5)]:[];
+ return {...widget([...titleBar,...order.map(i=>compactCard(ctx,results[i],i+1,family,metrics[i]))],enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:small?6:family==='systemMedium'?5:8,gap:lock?2:CARD_GAP};
 }
 export default async function(ctx) {
  if(ctx.request) {capture(ctx);return;}

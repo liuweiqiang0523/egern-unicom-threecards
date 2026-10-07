@@ -10,4 +10,7 @@ function mock(){
 }
 async function capture(m,p=phones[0],cookie='mock-session=A',url=API+'?desmobiel='+p){return run({...m.ctx,request:{url,headers:{Cookie:cookie}}});}
 const key=p=>'egern.unicom3.v1.slot.'+(phones.indexOf(p)+1);
-export {mock,capture,phones,API,key};
+// A summary widget's children are [optional title bar, card1..card3]; the three cards are the rounded
+// slot-tinted blocks (borderRadius 16), so this filters out the new top title bar.
+const cards=w=>(w.children||[]).filter(c=>c&&c.type==='stack'&&c.borderRadius===16);
+export {mock,capture,phones,API,key,cards};

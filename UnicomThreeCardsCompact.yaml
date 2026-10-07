@@ -1,7 +1,7 @@
 # 自动捕获前三个号码，按首次捕获顺序绑定卡1/2/3。汇总单独模块（替换原模块 URL）。
 name: 中国联通
 description: 打开联通App查询余额自动获取；一个组件三卡汇总，推荐中号；保留真实流量标签，无虚构进度
-icon: simcard.fill
+icon: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/assets/unicom-icon.png
 manual: https://github.com/liuweiqiang0523/egern-unicom-threecards/blob/main/INSTALL.md
 # Native Egern controls; defaults are placeholders, not module-level overrides.
 env_schema:
@@ -17,9 +17,9 @@ env_schema:
     description: 自定义安全短标题，最多24字符；明确设置时始终保留。留空由显示品牌开关决定。
     default_value: ""
   SHOW_BRAND:
-    name: 显示品牌前缀
-    description: 默认关闭，仅显示别名或卡序；开启使用中国联通前缀，有自定义标题时优先保留该标题。
-    default_value: "false"
+    name: 显示顶部标题栏
+    description: 显示汇总顶部标题栏（中国联通）；关闭后隐藏整行标题栏。留空即显示，有自定义标题时优先使用该标题。
+    default_value: "true"
     options:
       - "true"
       - "false"

@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import run from '../UnicomThreeCards.js';
-import {mock,capture,phones} from './helpers.js';
+import {mock,capture,phones,cards} from './helpers.js';
 const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(texts)];
 const nodes=n=>[n,...(n.children||[]).flatMap(nodes)];
-const allowed={widget:['type','children','backgroundColor','padding','gap','refreshAfter'],stack:['type','direction','alignItems','gap','children','flex','padding','backgroundColor','backgroundGradient','borderRadius','borderWidth','borderColor','width','height'],text:['type','text','font','textColor','maxLines','minScale','flex','textAlign'],image:['type','src','color','width','height'],spacer:['type','length','flex']};
+const allowed={widget:['type','children','backgroundColor','padding','gap','refreshAfter'],stack:['type','direction','alignItems','gap','children','flex','padding','backgroundColor','backgroundGradient','borderRadius','borderWidth','borderColor','width','height'],text:['type','text','font','textColor','maxLines','minScale','flex','textAlign'],image:['type','src','color','width','height','borderRadius','resizeMode'],spacer:['type','length','flex']};
 const used={flowPersent:'407.44',newUnit:'GB',dynamicFlowTitle:'已用通用流量'};
 const remaining={flowPersent:'158.17',newUnit:'GB',dynamicFlowTitle:'剩余通用流量'};
 const api=flow=>({code:'Y',feeResource:{feePersent:'12.34',newUnit:'元'},voiceResource:{voicePersent:'56',newUnit:'分钟'},flowResource:flow});
@@ -26,7 +26,7 @@ function colorStrings(n){const out=[];const visit=v=>{if(typeof v==='string'){if
 test('summary slot palette is blue/purple/cyan and no colour is yellow or orange',async()=>{
  const m=await setup(used);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
- const dots=t.children.map(c=>c.children[0].children[0].backgroundColor);
+ const dots=cards(t).map(c=>c.children[0].children[0].backgroundColor);
  assert.deepEqual(dots.map(c=>c.dark),['#5AA9FF','#BF5AF2','#38D6C0']);
  assert.deepEqual(dots.map(c=>c.light),['#2F7FE0','#9B3FD6','#12A594']);
  assert.equal(new Set(dots.map(c=>c.dark)).size,3);
@@ -42,7 +42,7 @@ test('unlimited cards need no configuration: gradient fade, ∞ and a 不限量 
  assert.equal(texts(t).filter(x=>x==='∞').length,3);
  assert.equal(texts(t).filter(x=>x==='407.44').length,3);
  assert.ok(!s.includes('%'));
- for(const card of t.children){
+ for(const card of cards(t)){
   const cap=card.children.at(-1);
   assert.ok(texts(cap.children[0]).includes('不限量'),'chip label');
   const bar=barOf(card);
@@ -57,20 +57,20 @@ test('unlimited cards need no configuration: gradient fade, ∞ and a 不限量 
 test('a configured total produces a real used/total ratio and still no percentage',async()=>{
  const m=await setup(remaining);
  const t=await run({...m.ctx,env:{VIEW:'all',CARD2_TOTAL:'500GB'}});
- const bar=barOf(t.children[1]);
+ const bar=barOf(cards(t)[1]);
  assert.equal(bar.height,4);assert.equal(bar.children.length,2);
  assert.equal(bar.children[0].flex,684);assert.equal(bar.children[1].flex,316);
  assert.equal(bar.children[0].backgroundGradient.type,'linear');
  assert.ok(!texts(t).join('|').includes('%'));
  assert.ok(!texts(t).includes('不限量'));
  // cards without a total keep a relative-length bar, never a bare empty track
- assert.equal(barOf(t.children[0]).height,4);
- assert.equal(barOf(t.children[2]).height,4);
+ assert.equal(barOf(cards(t)[0]).height,4);
+ assert.equal(barOf(cards(t)[2]).height,4);
 });
 test('used semantics compute the ratio from the used value',async()=>{
  const m=await setup(used);
  const t=await run({...m.ctx,env:{VIEW:'all',CARD1_TOTAL:'1000GB'}});
- const bar=barOf(t.children[0]);
+ const bar=barOf(cards(t)[0]);
  assert.equal(bar.children[0].flex,407);assert.equal(bar.children[1].flex,593);
  assert.ok(!texts(t).join('|').includes('%'));
 });
@@ -78,7 +78,7 @@ test('totals accept a bare number in the display unit and normalize other units'
  for(const [spec,flex] of [['500',684],['500GB',684],['0.5TB',691]]){
   const m=await setup(remaining);
   const t=await run({...m.ctx,env:{VIEW:'all',CARD1_TOTAL:spec}});
-  const bar=barOf(t.children[0]);
+  const bar=barOf(cards(t)[0]);
   assert.equal(bar.height,4,spec);assert.equal(bar.children.length,2,spec);
   assert.equal(bar.children[0].flex,flex,spec);
  }
@@ -87,7 +87,7 @@ test('no total uses a relative length versus the largest same-caliber value of t
  const flows=[{flowPersent:'100',newUnit:'GB',dynamicFlowTitle:'剩余通用流量'},{flowPersent:'200',newUnit:'GB',dynamicFlowTitle:'剩余通用流量'},{flowPersent:'50',newUnit:'GB',dynamicFlowTitle:'剩余通用流量'}];
  const m=await setupFlows(flows);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
- const bars=t.children.map(barOf);
+ const bars=cards(t).map(barOf);
  assert.deepEqual(bars.map(b=>b.height),[4,4,4]);
  assert.equal(bars[0].children[0].flex,500);
  assert.equal(bars[1].children[0].flex,1000);
@@ -98,17 +98,17 @@ test('removing a configured total falls back from a real ratio to the relative l
  const flows=[{flowPersent:'100',newUnit:'GB',dynamicFlowTitle:'剩余通用流量'},{flowPersent:'200',newUnit:'GB',dynamicFlowTitle:'剩余通用流量'},{flowPersent:'50',newUnit:'GB',dynamicFlowTitle:'剩余通用流量'}];
  let m=await setupFlows(flows);
  let t=await run({...m.ctx,env:{VIEW:'all',CARD2_TOTAL:'500GB'}});
- assert.equal(barOf(t.children[1]).children[0].flex,600); // (500-200)/500 = 0.6
+ assert.equal(barOf(cards(t)[1]).children[0].flex,600); // (500-200)/500 = 0.6
  m=await setupFlows(flows);
  t=await run({...m.ctx,env:{VIEW:'all',CARD2_TOTAL:''}});
- assert.equal(barOf(t.children[1]).children[0].flex,1000); // 200 is the max
+ assert.equal(barOf(cards(t)[1]).children[0].flex,1000); // 200 is the max
 });
 test('an invalid or missing total never fakes a ratio or a 0% style',async()=>{
  for(const spec of [undefined,'','abc','0','-5','500GB extra','1e9','1.2.3GB',{},'   ']){
   const m=await setup(remaining);
   const t=await run({...m.ctx,env:{VIEW:'all',CARD1_TOTAL:spec}});
   assert.ok(!texts(t).join('|').includes('%'),JSON.stringify(spec));
-  const bar=barOf(t.children[0]);
+  const bar=barOf(cards(t)[0]);
   assert.equal(bar.height,4,JSON.stringify(spec)); // relative length, never an empty 0% track
   assert.ok(bar.children[0].flex>0);
  }
@@ -127,7 +127,7 @@ test('each card shows its flow value exactly once',async()=>{
  const m=await setup(used);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
  assert.equal(texts(t).filter(x=>x==='407.44').length,3);
- for(const card of t.children)assert.equal(texts(card).filter(x=>x==='407.44').length,1);
+ for(const card of cards(t))assert.equal(texts(card).filter(x=>x==='407.44').length,1);
 });
 test('backgroundGradient is a documented linear DSL property, only used for the flow bar',async()=>{
  const m=await setup(used);

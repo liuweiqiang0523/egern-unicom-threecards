@@ -1,16 +1,18 @@
 <!doctype html><meta charset="utf-8"><title>三卡汇总 设计预览</title>
-<style>body{font:13px system-ui;background:#0e0f13;color:#eee;padding:26px;margin:0}.wrap{display:flex;gap:26px;flex-wrap:wrap}.box{width:360px}.cap{color:#9aa0ad;margin:0 0 8px}.cap b{color:#fff}.holder{border-radius:20px;overflow:hidden}.note{color:#7b8090;margin-top:18px;max-width:1120px}code{color:#c7ccd6}</style>
-<h2 style="margin:0 0 6px">三卡合一 · 每卡大胶囊块 + 流量条（设计预览）</h2>
-<p class="note"><b>设计预览，非实机截图。</b>合成测试数据，不是真实余额。本页直接执行仓库 <code>UnicomThreeCards.js</code> 并按返回的 DSL 构造 DOM；浏览器字体与 Egern 原生渲染不同。每张卡是一个圆角大胶囊块（卡槽色低 alpha 淡染 + 1px 略亮描边，卡间留白），内部话费/语音/流量胶囊保持各自卡槽色淡染。卡槽配色蓝/紫/青；无限流量卡流量条渐变淡出并显示 ∞ 与「不限量」；有参考总量才画真实比例；「卡片顺序」可调整三卡显示次序。推荐中号。</p>
+<style>body{font:13px system-ui;background:#0e0f13;color:#eee;padding:26px;margin:0}.wrap{display:flex;gap:26px;flex-wrap:wrap}.box{width:360px}.cap{color:#9aa0ad;margin:0 0 8px}.cap b{color:#fff}.holder{border-radius:20px;overflow:hidden}.note{color:#7b8090;margin-top:18px;max-width:1140px}code{color:#c7ccd6}</style>
+<h2 style="margin:0 0 6px">三卡合一 · 标题栏 + 每卡大胶囊块 + 流量条（设计预览）</h2>
+<p class="note"><b>设计预览，非实机截图。</b>合成测试数据，不是真实余额。本页直接执行仓库 <code>UnicomThreeCards.js</code> 并按返回的 DSL 构造 DOM；浏览器字体与 Egern 原生渲染不同。汇总顶部默认显示一行标题栏：模块图标（同一 PNG，圆角 3、contain）＋「中国联通」（半粗 13px），可被安全的自定义标题覆盖，<code>SHOW_BRAND=false/off/0</code> 时整行（图标＋文字）隐藏。每张卡是一个圆角大胶囊块（卡槽色低 alpha 淡染 + 1px 略亮描边，卡间留白），内部话费/语音/流量胶囊保持各自卡槽色淡染；卡片行前的卡槽色小方块保持不变。卡槽配色蓝/紫/青；无限流量卡流量条渐变淡出并显示 ∞ 与「不限量」；有参考总量才画真实比例；「卡片顺序」可调整三卡显示次序。<b>预览中图标以本地文件显示，正式 DSL 使用同一文件的远程 raw URL。</b></p>
 <div class="wrap">
- <div class="box"><p class="cap"><b>① 无限流量卡：什么都不用填</b><br>没有套餐总量 → 流量条向右渐变淡出、末端 ∞、标记「不限量」，绝不出现百分比；每卡一个淡染胶囊块</p><div class="holder" id="a"></div></div>
+ <div class="box"><p class="cap"><b>① 标题栏 + 无限流量卡：什么都不用填</b><br>顶部标题栏（图标＋中国联通）；没有套餐总量 → 流量条向右渐变淡出、末端 ∞、标记「不限量」，绝不出现百分比；每卡一个淡染胶囊块</p><div class="holder" id="a"></div></div>
  <div class="box"><p class="cap"><b>② 给有配额的卡填一次参考总量</b><br>卡2 填 500GB → 真实比例填充（剩余 120GB → 已用 76%），其余卡仍为无限淡出</p><div class="holder" id="b"></div></div>
  <div class="box"><p class="cap"><b>③ 可调卡片顺序：CARD_ORDER=3,1,2</b><br>只改汇总显示顺序，卡槽与存储键不变；单卡组件不受影响</p><div class="holder" id="c"></div></div>
 </div>
 <script type="module">
 import run from '../UnicomThreeCards.js';
 const color=c=>typeof c==='object'?c.dark:c;
+const localSrc=src=>String(src).includes('unicom-icon.png')?'../assets/unicom-icon.png':src;
 function render(n){const e=document.createElement('div');e.style.boxSizing='border-box';
+ if(n.type==='image'){const img=document.createElement('img');img.src=localSrc(n.src);img.style.width=(n.width||15)+'px';img.style.height=(n.height||15)+'px';img.style.objectFit=n.resizeMode||'contain';img.style.display='block';if(n.borderRadius)img.style.borderRadius=n.borderRadius+'px';e.append(img);e.style.width=(n.width||15)+'px';return e;}
  if(n.type==='text'){e.textContent=n.text;e.style.fontSize=n.font.size+'px';e.style.fontWeight={regular:400,medium:500,semibold:600,bold:700}[n.font.weight];e.style.color=color(n.textColor);e.style.whiteSpace='nowrap';e.style.overflow='hidden';e.style.textOverflow='ellipsis';}
  else{e.style.display='flex';e.style.flexDirection=n.direction==='row'?'row':'column';e.style.alignItems=n.alignItems||'stretch';if(n.gap)e.style.gap=n.gap+'px';if(n.padding!==undefined)e.style.padding=Array.isArray(n.padding)?n.padding.map(v=>v+'px').join(' '):n.padding+'px';if(n.backgroundGradient){const g=n.backgroundGradient;e.style.background='linear-gradient(90deg,'+color(g.colors[0])+','+color(g.colors[1])+')';}else if(n.backgroundColor)e.style.background=color(n.backgroundColor);if(n.borderWidth)e.style.border=n.borderWidth+'px solid '+(n.borderColor?color(n.borderColor):'transparent');if(n.borderRadius)e.style.borderRadius=n.borderRadius+'px';if(n.width)e.style.width=n.width+'px';if(n.height)e.style.height=n.height+'px';if(n.type==='spacer')e.style.flex='1';for(const c of n.children||[])e.append(render(c));}
  if(n.flex)e.style.flex=n.flex+' 1 0';e.style.minWidth='0';return e;}

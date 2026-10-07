@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import run from '../UnicomThreeCards.js';
-import {mock,capture,phones} from './helpers.js';
+import {mock,capture,phones,cards} from './helpers.js';
 const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(texts)];
 test('all renders three compact independent rows with exact API flow semantics',async()=>{
  const m=mock();for(const p of phones) await capture(m,p);
  m.ctx.env={VIEW:'all',CARD1_NAME:'双不限',CARD2_NAME:'副卡',CARD3_NAME:'备用'};
  const t=await run(m.ctx),s=texts(t).join('|');
- assert.equal(t.children.length,3);
+ assert.equal(cards(t).length,3);
  for(const name of ['双不限','副卡','备用']) assert.ok(s.includes(name));
  assert.equal(texts(t).filter(x=>x==='7.8').length,3);
  assert.equal(m.calls.length,3);
@@ -27,7 +27,7 @@ test('all isolates one auth failure and never mixes cookies',async()=>{
  let active=0,peak=0;const seen=[];
  m.ctx.http.get=async(u,o)=>{active++;peak=Math.max(peak,active);seen.push([u,o]);await new Promise(r=>setTimeout(r,5));active--;return {status:u.includes(phones[1])?401:200,json:async()=>({code:'Y',feeResource:{feePersent:'12.34'},voiceResource:{voicePersent:'56'},flowResource:{flowPersent:'123456789.1234',newUnit:'GB',dynamicFlowTitle:'已用流量'}})};};
  const tree=await run({...m.ctx,env:{CARD_SLOT:'all',SHOW_PHONE_SUFFIX:'true'}}),s=texts(tree).join('|');
- assert.equal(peak,3);assert.equal(tree.children.length,3);
+ assert.equal(peak,3);assert.equal(cards(tree).length,3);
  assert.ok(s.includes('登录失效'));assert.equal(texts(tree).filter(t=>t==='已用流量').length,2);assert.equal(texts(tree).filter(t=>t==='123456789.1234').length,2);
  seen.forEach(([u,o],i)=>{assert.ok(u.includes(phones[i]));assert.equal(o.headers.Cookie,'mock='+i);assert.equal(o.timeout,8000);assert.equal(o.redirect,'error');});
  for(const phone of phones) assert.ok(!JSON.stringify(tree).includes(phone));
@@ -55,9 +55,9 @@ test('all settings retain exact titles, alias and cache timestamp without rerequ
 test('medium summary is a three-row capsule card inside one rounded slot-tinted block',async()=>{
  const m=mock();for(const p of phones)await capture(m,p);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
- assert.equal(t.children.length,3);
+ assert.equal(cards(t).length,3);
  assert.equal(t.gap,9); // card-to-card spacing so the three blocks read apart
- t.children.forEach((card,i)=>{
+ cards(t).forEach((card,i)=>{
   assert.equal(card.type,'stack');assert.equal(card.gap,2);
   // The whole card is one rounded block: slot wash over the base + a brighter 1px outline.
   assert.equal(card.borderRadius,16);assert.equal(card.borderWidth,1);assert.deepEqual(card.padding,[4,7,4,7]);
