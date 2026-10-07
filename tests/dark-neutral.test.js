@@ -16,8 +16,8 @@ test('neutral summary surfaces, severity-only fee colors and 4pt theme bars pres
  cards(t).forEach((c,i)=>{
   assert.equal(c.backgroundColor.dark,'#1D1F23');assert.equal(c.borderColor.dark,'#292B30');
   assert.equal(c.children.length,2);assert.equal(c.children[0].width,2);
-  assert.equal(c.children[1].children[2].children.length,3);
-  assert.ok(c.children[1].children[2].children.every(n=>!n.backgroundColor));
+  assert.equal(c.children[1].children[2].children.length,5);
+  assert.ok(c.children[1].children[2].children.filter(n=>n.direction==='column').every(n=>!n.backgroundColor));
   const all=nodes(c);assert.equal(all.find(n=>n.text===fee[i]).textColor.dark,['#B66CFF','#FF5C68','#D99A70'][i]);
   assert.equal(all.filter(n=>n.text===flow[i]).length,1);
   const bar=c.children[1].children.at(-1).children[0];assert.equal(i?bar.children[0].height:bar.height,4);

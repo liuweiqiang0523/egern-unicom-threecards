@@ -1,17 +1,23 @@
-# Measurement-led summary correction
+# Final reference measurements and implementation
 
-Private source screenshots are not included in this repository. Width-normalized measurements use a 402pt phone width (comparison convention, not a claim about device scale): actual JPEG 1177×2560, reference JPEG 960×1280. Swift Vision OCR supplies glyph boxes; Pillow/NumPy supplies bar runs and RGB samples.
+Private reference is not committed. Source is 960×1280; normalized at 402pt full phone width, so scale is 960/402=2.388 px/pt. Swift Vision OCR and Pillow/NumPy were used rather than inferred from earlier rejected images.
 
-| Geometry | Actual screenshot | Reference | Corrected DSL / browser |
-|---|---:|---:|---:|
-| Card identity row pitch | ~106pt | ~89pt | 93pt (86pt card + 7pt gap) |
-| Identity glyph top → metric-label top | ~16pt | ~25pt | 23.6pt row-box interval |
-| Metric-value glyph bottom → thin-bar top, first card | ~40pt | ~7pt | ~8pt glyph/row clearance; 6pt explicit metrics-box gap |
-| Left color rail | ~80pt (234px run) | short inset marker | 48pt; inset 8pt + border |
-| Numeric / name / label / helper font size, large | 13 / 12 / 10 / 9pt | numeric emphasis | 14 / 12 / 9 / 8pt; badge 6pt |
+| Visible feature | Final reference | Implemented large DSL |
+|---|---|---|
+| Identity glyph tops | y616,826,1040 | 89pt card pitch (82 + 7) |
+| Identity → resource label | 58–62px ≈24–26pt | 16.9pt identity row +7pt gap =23.9pt |
+| Number glyph height | 30–38px ≈13–16pt ink | 18pt fee/voice,17pt flow; 9pt units |
+| Numeric glyph bottom → bar | ~17px ≈7pt | metrics row bottom → bar 5pt, plus glyph descent |
+| Header brand/title | red Unicom knot + white 中国联通, y540–577 | existing public PNG embedded offline; 18pt title |
+| Header right | refresh glyph and 00:34 | arrow.clockwise + latest actual successful data timestamp |
+| Resource headings | coin / handset / cloud + exact API titles | yensign.circle / phone.fill / cloud.fill; 10pt titles |
+| Column divisions | subtle thin vertical lines | two 1×30pt neutral stacks |
+| Unlimited badge | small dark inline 不限量 beside GB | inline 6pt badge, no duplicate flow value |
 
-The first actual identity marker samples blue (~90,167,247), second purple; the reference first marker samples purple. Published baseline JS already declares summary purple/blue/teal. Pixels prove a discrepancy, but cannot distinguish an old local JS, a different script definition, or another renderer/source; no stale-cache diagnosis is asserted and stored slots are not remapped.
+No resource title, value, precision, unit, per-card timestamp, suffix or alias is changed. Capture/load/query prefix, flowMetrics, flowBar and single-card path retain exact baseline hashes. The added header timestamp is derived only from result.updatedAt of cards with actual data; cache failure retains it and empty state omits it.
 
-Root/header remains flex-free. Large/extra-large card and holder heights are explicit, so nested horizontal metric flex cannot inflate vertical rows. A root bottom spacer absorbs the unavoidable remaining fixed iOS widget frame instead of a spacer pushing every card's bar away from its values. Small/medium retain their existing compact budgets. Capture, load/query, timestamp, cache, flowMetrics/flowBar and single-card byte-hash regressions remain intact.
+Official documentation https://egernapp.com/docs/configuration/widgets/ explicitly permits image src `sf-symbol:` and `data:<mime>;base64,`; it does not list HTTPS image src. Prior question-mark was an unsupported source, not evidence that the remote network alone failed. Brand uses the existing 64px PNG encoded into JS, no HTTP fetch. Preview renders that exact PNG and distinct approximate SVG symbols (iOS SF Symbol shapes differ).
 
-`compact-preview.png` is a complete 338×344pt holder screenshot at 3× browser scale, produced from the real JS with **synthetic data**, not native Egern or an account screenshot. Browser assertions verify all text boxes stay inside cards, no horizontal clipping, header below/above metric ordering, 8pt header→metric gap, 6pt metric→bar gap and no holder scroll overflow. Egern/iOS fonts and fixed-frame rendering still need native acceptance; JS cannot shorten the system widget frame.
+`compact-preview.png` is real-JS DSL rendered into fixed 338×344pt browser frame at 3× using synthetic data. Private same-values comparison is local scratch only, preserves all three screenshot times via a frozen fixture clock and disables HTTP. Assertions cover text width and card boundaries, header/metric/bar ordering, 89pt pitch and frame scrollHeight=344. Browser preview is not native Egern acceptance. Fixed heights fence recursive flex; root spare system height remains below the complete panel, never a giant gap inside a card. Medium remains a denser responsive fallback; large is the reference match.
+
+Limits: SF Symbol drawings/font rasterization differ from screenshot; original flow-bar semantics intentionally remain (so first remaining card can show full relative bar). No fake chevron navigation/deep link is invented. iOS outer frame cannot be shortened by JS.

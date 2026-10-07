@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import run from '../UnicomThreeCards.js';
 import {mock,capture,phones,cards} from './helpers.js';
 
-const ICON_SRC='sf-symbol:simcard.fill';
+const ICON_SRC=/^data:image\/png;base64,/;
 const MODULE_ICON='https://cdn.jsdelivr.net/gh/liuweiqiang0523/egern-unicom-threecards@main/assets/unicom-icon.png';
 const nodes=n=>[n,...(n.children||[]).flatMap(nodes)];
 const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(texts)];
@@ -16,22 +16,22 @@ test('summary shows a 中国联通 title bar (module icon + text) at the top by 
  const t=await summary();
  const bar=t.children[0];
  assert.equal(bar.type,'stack');assert.equal(bar.direction,'row');
- assert.equal(bar.children[0].type,'image');assert.equal(bar.children[0].src,ICON_SRC);
+ assert.equal(bar.children[0].type,'image');assert.match(bar.children[0].src,ICON_SRC);
  assert.ok(bar.children[0].width>0&&bar.children[0].height>0);
  assert.ok(texts(bar).includes('中国联通'));
- assert.equal(images(t).length,1); // exactly one icon, only in the title bar
+ assert.equal(images(t).length,2); // offline brand image plus refresh symbol in medium header
  // the three cards still follow the title bar, each with its own slot square (not the icon)
  assert.equal(cards(t).length,3);
  assert.ok(cards(t).every(c=>c.children[1].children[0].children[0].type==='stack'));
- // no timestamp on the title bar itself
- assert.ok(!texts(bar).some(s=>/^\d{2}:\d{2}$/.test(s)));
+ // Header repeats a real successful time; no render-time substitution.
+ assert.ok(texts(bar).some(s=>/^\d{2}:\d{2}$/.test(s)));
 });
 
 test('a safe WIDGET_TITLE overrides the title-bar text but keeps the icon',async()=>{
  const t=await summary({WIDGET_TITLE:'我的三卡'});
  assert.ok(texts(t).includes('我的三卡'));
  assert.ok(!texts(t).includes('中国联通'));
- assert.equal(images(t).length,1);
+ assert.equal(images(t).length,2);
 });
 
 test('an explicit SHOW_BRAND false/off/0 hides the whole title bar including the icon',async()=>{
@@ -74,21 +74,20 @@ test('the summary title bar is never height-flexible: no flex anywhere in its su
  const flexy=n=>!!n.flex||(n.children||[]).some(flexy);
  assert.ok(!flexy(bar),'the title bar subtree must contain no flex');
  assert.ok(!Object.hasOwn(bar,'flex'),'the title bar itself must not be flexible');
- assert.equal(bar.children.at(-1).type,'spacer','the title bar uses a spacer, not flex, to fill width');
+ assert.equal(bar.children[2].type,'spacer','the title bar uses a spacer, not flex, to fill width');
  // the widget's only flexible child is the card holder, which gives the freed height to the cards
  assert.equal(t.children.length,2);
  assert.equal(t.children[1].flex,1);
  assert.ok(!Object.hasOwn(t.children[0],'flex'));
 });
 
-test('the title-bar icon is an SF Symbol so it never shows a "?" placeholder',async()=>{
- // A remote PNG (raw.githubusercontent.com) rendered as an iOS "?" placeholder on device whenever
- // the fetch failed; the upstream widget resolves `sf-symbol:<name>` locally instead, so the icon
- // must stay a symbol reference and never become an http(s) URL again.
+test('the title-bar brand PNG uses the documented offline data URI, never a network URL',async()=>{
+ // Official src accepts SF Symbols or base64 data URIs, not https URLs.
+ // Embedded brand PNG preserves the actual trademark without any network dependency.
  const t=await summary();
  const icon=t.children[0].children[0];
  assert.equal(icon.type,'image');
- assert.ok(icon.src.startsWith('sf-symbol:'),'icon src must be an sf-symbol reference');
+ assert.ok(icon.src.startsWith('data:image/png;base64,'),'icon src must be a documented offline PNG data URI');
  assert.ok(!/^https?:/i.test(icon.src),'icon must not depend on a network fetch');
  assert.ok(icon.width>=12&&icon.height>=12,'icon must be big enough to read next to 13pt text');
 });
@@ -97,7 +96,7 @@ test('the title-bar icon is an SF Symbol so it never shows a "?" placeholder',as
 test('SHOW_BRAND true/on/1 or unset keeps the title bar',async()=>{
  for(const v of [undefined,true,'true','on','1']){
   const t=await summary(v===undefined?undefined:{SHOW_BRAND:v});
-  assert.equal(images(t).length,1,JSON.stringify(v));
+  assert.equal(images(t).length,2,JSON.stringify(v));
   assert.ok(texts(t).includes('中国联通'),JSON.stringify(v));
  }
 });
