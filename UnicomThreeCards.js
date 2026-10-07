@@ -118,6 +118,53 @@ function widget(children,translucent=false) {
 const CAPSULE_COLORS=[{light:'#FFF1E5',dark:'#FFB97626'},{light:'#F2EDFF',dark:'#BEA3FF26'},{light:'#EAF4FF',dark:'#86BFFF26'}];
 const SLOT_COLORS=[{light:'#CA7547',dark:'#F6B485'},{light:'#8062AE',dark:'#C2ACF1'},{light:'#4584B6',dark:'#92C5ED'}];
 const WARNING={background:{light:'#FDE9E7',dark:'#FF786426'},value:{light:'#B83A32',dark:'#FFB4AA'}};
+// Airport-style summary. A card only ever shows a fill when a real ratio is known; otherwise the
+// track collapses to a thin 2pt separator so it can never be read as a fake 0% progress bar.
+const TRACK={light:'#484848',dark:'#484848'};
+const REMAIN={light:'#12833F',dark:'#31D05A'};
+const BAR_H=4, SEP_H=2;
+const UNIT_MB={KB:1/1024,M:1,MB:1,G:1024,GB:1024,T:1024*1024,TB:1024*1024};
+const FLOW_SIZES={systemSmall:{name:11,big:15,unit:9,title:9,value:11,tag:9,time:9,icon:6},systemMedium:{name:12,big:17,unit:10,title:10,value:12,tag:10,time:9,icon:7},systemLarge:{name:12,big:19,unit:10,title:11,value:13,tag:11,time:9,icon:7},systemExtraLarge:{name:13,big:20,unit:11,title:11,value:14,tag:11,time:10,icon:8}};
+// Which resource the API title describes; never inferred from the value itself.
+function flowSemantic(title) {
+ if(typeof title!=='string') return 'neutral';
+ if(title.includes('剩余')) return 'remaining';
+ if(title.includes('已用')) return 'used';
+ return 'neutral';
+}
+// Parse an opt-in plan total. A bare number means the display unit; returns megabytes or null.
+function totalMB(spec,fallbackUnit) {
+ if(!['string','number'].includes(typeof spec)) return null;
+ const m=String(spec).trim().toUpperCase().match(/^(\d+(?:\.\d+)?)\s*(TB|GB|MB|KB|T|G|M|K|B)?$/);
+ if(!m) return null;
+ const n=Number(m[1]);
+ if(!Number.isFinite(n)||n<=0) return null;
+ const suffix=m[2]||'';
+ const factor=suffix===''?UNIT_MB[fallbackUnit]:suffix==='B'?1/1048576:suffix==='K'||suffix==='KB'?1/1024:UNIT_MB[suffix];
+ if(typeof factor!=='number'||!Number.isFinite(factor)||factor<=0) return null;
+ const mb=n*factor;
+ return Number.isFinite(mb)&&mb>0?mb:null;
+}
+// A real fill needs an explicit used/remaining label AND a parseable total; otherwise null.
+function flowRatio(flow,spec) {
+ const semantic=flowSemantic(flow.title);
+ const factor=UNIT_MB[flow.unit];
+ if(semantic==='neutral'||typeof factor!=='number') return null;
+ const total=totalMB(spec,flow.unit);
+ const value=Number(flow.value);
+ if(!total||!Number.isFinite(value)||value<0) return null;
+ const used=semantic==='remaining'?total-value*factor:value*factor;
+ const ratio=used/total;
+ return Number.isFinite(ratio)?Math.max(0,Math.min(1,ratio)):null;
+}
+function divider(fillColor,ratio) {
+ if(ratio===null) return {type:'stack',direction:'row',height:SEP_H,borderRadius:1,backgroundColor:TRACK,children:[]};
+ const r=Math.round(ratio*1000);
+ const inner=r>=1000?[{type:'stack',height:BAR_H,borderRadius:BAR_H/2,backgroundColor:fillColor,flex:1000}]
+  :r<=0?[]
+  :[{type:'stack',height:BAR_H,borderRadius:BAR_H/2,backgroundColor:fillColor,flex:r},{type:'stack',height:BAR_H,flex:1000-r}];
+ return {type:'stack',direction:'row',height:BAR_H,borderRadius:BAR_H/2,backgroundColor:TRACK,children:inner};
+}
 function balanceThreshold(value) {
  if(!['string','number'].includes(typeof value)||!/^\d+(?:\.\d+)?$/.test(String(value).trim())) return 10;
  const n=Number(value);return Number.isFinite(n)?n:10;
@@ -149,19 +196,25 @@ function lockWidget(result,labels,family,translucent,threshold) {
  if(family==='accessoryCircular') return lock([text(d[2].title,9),{...text(d[2].value,20,COLORS.value,'semibold'),textAlign:'center'},text(d[2].unit+status,9)]);
  return lock([row([...labels,text(label(d[0]),12,feeColor)],2),text(label(d[1]),10),text(label(d[2])+status,10)]);
 }
-function compactRow(ctx,result,selection,family) {
- const small=family==='systemSmall',lock=family.startsWith('accessory');
+function compactCard(ctx,result,selection,family) {
+ const lock=family.startsWith('accessory'),small=family==='systemSmall';
+ const s=FLOW_SIZES[family]||FLOW_SIZES.systemSmall;
  const alias=cardName(ctx.env?.['CARD'+selection+'_NAME'],selection);
- const labels=identityTexts('',alias,lock?'':result.suffix,small?'systemSmall':family);
- const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
- const dot={type:'stack',width:5,height:5,borderRadius:3,backgroundColor:SLOT_COLORS[selection-1],children:[]};
- const heading=row([dot,...labels,...(!lock?[{...text(time,9,COLORS.muted),minScale:1}]:[])],4);
- if(!result.data) return {type:'stack',direction:'column',gap:2,children:[heading,{...text(result.status,small||lock?9:11,COLORS.accent),maxLines:1}]};
+ const labels=identityTexts('',alias,lock?'':result.suffix,family);
+ const dot={type:'stack',width:s.icon,height:s.icon,borderRadius:2,backgroundColor:SLOT_COLORS[selection-1],children:[]};
+ if(!result.data) return {type:'stack',direction:'column',gap:small||lock?2:3,children:[row([dot,...labels],4),text(result.status,small||lock?9:11,COLORS.accent)]};
  const [fee,voice,flow]=result.data;
- const flowLine=row([{...text(flow.title,small||lock?9:10,COLORS.muted,'medium'),flex:1},text(flow.value,lock?11:small?15:family==='systemMedium'?16:19,COLORS.value,'semibold'),text(flow.unit,9,COLORS.muted)],3);
- const secondary=text(fee.title+' '+fee.value+fee.unit+' · '+voice.title+' '+voice.value+voice.unit,9,lowBalance(fee,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD))?WARNING.value:COLORS.muted);
- const primary=family==='systemMedium'?[row([{...heading,flex:1},{...flowLine,flex:1}],6)]:[heading,flowLine];
- return {type:'stack',direction:'column',gap:small||lock||family==='systemMedium'?1:2,...(lock?{}:{padding:[2,6,2,6],backgroundColor:CAPSULE_COLORS[2],borderRadius:8}),children:[...primary,...(!small&&!lock?[secondary]:[]),...(result.status==='已更新'?[]:[text(result.status,8,COLORS.accent)])]};
+ const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
+ if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...labels,text(flow.value,11,COLORS.value,'semibold'),text(flow.unit,9,COLORS.muted)],3)]};
+ const semantic=flowSemantic(flow.title);
+ const ratio=flowRatio(flow,ctx.env?.['CARD'+selection+'_TOTAL']);
+ // "百分比位": a real ratio when one exists (quota card), otherwise a neutral chip — never a fake 0%.
+ const tag=ratio!==null?Math.round(ratio*100)+'%':semantic==='used'?'不限':null;
+ const head=row([dot,...labels,{...text(time,s.time,COLORS.muted),minScale:1},...(tag?[text(tag,s.tag,COLORS.muted,'medium')]:[]),text(flow.value,s.big,semantic==='remaining'?REMAIN:COLORS.value,'semibold'),text(flow.unit,s.unit,COLORS.muted,'medium')],4);
+ const secondary=small?[]:[text(fee.title+' '+fee.value+fee.unit,s.value,lowBalance(fee,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD))?WARNING.value:COLORS.muted),text(voice.title+' '+voice.value+voice.unit,s.value,COLORS.muted)];
+ const abnormal=result.status!=='已更新';
+ const foot=row([{...text(flow.title,s.title,COLORS.muted,'medium'),flex:1},...secondary,...(abnormal?[text(result.status,9,COLORS.accent)]:[])],4);
+ return {type:'stack',direction:'column',gap:small?3:4,children:[head,divider(SLOT_COLORS[selection-1],ratio),foot]};
 }
 async function compactWidget(ctx) {
  const family=typeof ctx.widgetFamily==='string'?ctx.widgetFamily:'systemMedium';
@@ -175,8 +228,8 @@ async function compactWidget(ctx) {
   const summary=results.map((r,i)=>'卡'+(i+1)+' '+(r.data?r.data[2].title+' '+r.data[2].value+r.data[2].unit:r.status));
   return {...widget(family==='accessoryInline'?[text(summary.join(' · '),9)]:summary.map(s=>text(s,9)),enabled(ctx.env?.TRANSLUCENT)),padding:family==='accessoryInline'?0:4,gap:1};
  }
- const title=safeTitle(ctx.env?.WIDGET_TITLE,enabled(ctx.env?.SHOW_BRAND)?'中国联通':'');
- return {...widget([...(title&&!lock?[text(title,10,COLORS.muted,'medium')]:[]),...results.map((r,i)=>compactRow(ctx,r,i+1,family))],enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:family==='systemSmall'?6:8,gap:family==='systemLarge'||family==='systemExtraLarge'?10:3};
+ const title=lock?'':safeTitle(ctx.env?.WIDGET_TITLE,enabled(ctx.env?.SHOW_BRAND)?'中国联通':'');
+ return {...widget([...(title?[row([{...text(title,9,COLORS.muted,'medium'),flex:1}])]:[]),...results.map((r,i)=>compactCard(ctx,r,i+1,family))],enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:family==='systemSmall'?6:8,gap:lock?2:family==='systemSmall'?8:family==='systemLarge'||family==='systemExtraLarge'?10:9};
 }
 export default async function(ctx) {
  if(ctx.request) {capture(ctx);return;}

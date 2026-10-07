@@ -35,6 +35,18 @@ env_schema:
     name: 卡3别名
     description: 留空显示卡3；安全短文本，截取前12字符；不接受完整手机号。
     default_value: ""
+  CARD1_TOTAL:
+    name: 卡1参考总量
+    description: 可选。仅当这张卡有真实配额、想显示真实进度条时填写（如 500GB 或 500）；无限流量卡无需填写，也不会显示任何百分比，删掉即恢复为细分隔线。
+    default_value: ""
+  CARD2_TOTAL:
+    name: 卡2参考总量
+    description: 可选。仅当这张卡有真实配额、想显示真实进度条时填写（如 500GB 或 500）；无限流量卡无需填写，也不会显示任何百分比，删掉即恢复为细分隔线。
+    default_value: ""
+  CARD3_TOTAL:
+    name: 卡3参考总量
+    description: 可选。仅当这张卡有真实配额、想显示真实进度条时填写（如 500GB 或 500）；无限流量卡无需填写，也不会显示任何百分比，删掉即恢复为细分隔线。
+    default_value: ""
   SHOW_PHONE_SUFFIX:
     name: 显示号码尾四位
     description: 默认关闭；开启仅显示脱敏尾四位，不显示完整手机号。锁屏圆形不显示。

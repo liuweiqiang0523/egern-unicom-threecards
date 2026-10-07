@@ -10,7 +10,7 @@ const families=['systemSmall','systemMedium','systemLarge','systemExtraLarge','a
 const nodes=w=>[w,...(w.children||[]).flatMap(nodes)];
 const content=w=>nodes(w).filter(n=>n.type==='text').map(n=>n.text).join('');
 test('module exposes real native settings, no slot override or imaginary API options',()=>{
- assert.deepEqual(Object.keys(moduleConfig.env_schema).sort(),['CARD1_NAME','CARD2_NAME','CARD3_NAME','LOW_BALANCE_THRESHOLD','SHOW_BRAND','SHOW_PHONE_SUFFIX','TRANSLUCENT','WIDGET_TITLE']);
+ assert.deepEqual(Object.keys(moduleConfig.env_schema).sort(),['CARD1_NAME','CARD1_TOTAL','CARD2_NAME','CARD2_TOTAL','CARD3_NAME','CARD3_TOTAL','LOW_BALANCE_THRESHOLD','SHOW_BRAND','SHOW_PHONE_SUFFIX','TRANSLUCENT','WIDGET_TITLE']);
  assert.deepEqual(moduleConfig.env_schema.TRANSLUCENT.options,['true','false']);
  assert.equal(moduleConfig.env_schema.TRANSLUCENT.default_value,'false');
  assert.equal(moduleConfig.env_schema.WIDGET_TITLE.default_value,'');assert.deepEqual(moduleConfig.env_schema.SHOW_BRAND.options,['true','false']);assert.equal(moduleConfig.env_schema.SHOW_BRAND.default_value,'false');

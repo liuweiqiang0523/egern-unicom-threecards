@@ -51,9 +51,19 @@ test('all settings retain exact titles, alias and cache timestamp without rerequ
  assert.equal(m.calls.length,3);assert.equal(t.backgroundColor.light,'#FFFFFFB3');assert.ok(texts(t).includes('我的三卡'));assert.ok(texts(t).includes('· 尾号0001'));
  assert.deepEqual([1,2,3].map(i=>m.ctx.storage.getJSON('egern.unicom3.v1.slot.'+i)),records);
 });
-test('medium summary stays within compact per-row typography budget',async()=>{
+test('medium summary keeps the airport-style row shape and never fakes a ratio',async()=>{
  const m=mock();for(const p of phones) await capture(m,p);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
- for(const row of t.children){assert.equal(row.gap,1);assert.equal(row.padding[0],2);assert.ok(row.children[0].children[1].children.every(n=>n.type==='text'&&n.font.size<=16));}
+ assert.equal(t.children.length,3);
+ for(const card of t.children){
+  assert.equal(card.type,'stack');assert.equal(card.gap,4);assert.ok(!card.backgroundColor);
+  const [head,bar,foot]=card.children;
+  assert.equal(head.type,'stack');assert.equal(bar.type,'stack');assert.equal(foot.type,'stack');
+  // No plan total configured: the bar collapses to a 2pt separator with no fill at all.
+  assert.equal(bar.height,2);assert.deepEqual(bar.children,[]);
+  assert.ok(head.children.every(n=>n.type==='stack'||n.font.size<=17));
+  assert.ok(foot.children.every(n=>n.type==='text'&&n.font.size<=12));
+ }
+ assert.ok(!texts(t).join('|').includes('%'));
 });
 export {texts};
