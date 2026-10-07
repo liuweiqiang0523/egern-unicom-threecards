@@ -146,7 +146,7 @@ const BAR_H=4, SEP_H=2;
 const CARD_RADIUS=16, CARD_GAP=7, TITLE_GAP=2, CARD_PAD=[4,7,4,7];
 const UNIT_MB={KB:1/1024,M:1,MB:1,G:1024,GB:1024,T:1024*1024,TB:1024*1024};
 // thead/ticon: the summary's slim top title bar (text / icon), kept small so the cards get the room.
-const FLOW_SIZES={systemSmall:{name:10,unit:8,title:8,value:10,label:8,tag:7,time:8,icon:6,thead:11,ticon:12,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:9,unit:8,title:8,value:10,label:8,tag:7,time:7,icon:6,thead:12,ticon:13,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:12,unit:10,title:10,value:13,label:10,tag:9,time:9,icon:7,thead:13,ticon:14,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:13,unit:10,title:11,value:14,label:11,tag:10,time:10,icon:8,thead:14,ticon:15,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
+const FLOW_SIZES={systemSmall:{name:8,unit:7,title:7,value:8,label:7,tag:5,time:7,icon:6,thead:11,ticon:12,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:7,unit:6,title:5,value:7,label:5,tag:4,time:6,icon:5,thead:12,ticon:13,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:12,unit:10,title:10,value:13,label:10,tag:9,time:9,icon:7,thead:13,ticon:14,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:13,unit:10,title:11,value:14,label:11,tag:10,time:10,icon:8,thead:14,ticon:15,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
 // Which resource the API title describes; never inferred from the value itself.
 function flowSemantic(title) {
  if(typeof title!=='string') return 'neutral';
@@ -244,8 +244,8 @@ function compactIdentity(alias,suffix,family,s) {
  if(suffix) parts.push({...text('· 尾号'+suffix,s.name-2,COLORS.value,'medium'),minScale:1});
  return parts;
 }
-// Summary geometry is unchanged: identity/time, two resource capsules, full-width flow capsule.
-// Only surfaces, text accents and warning colours differ from the previous tinted design.
+// Three-column reference layout: identity/time, fee + voice + flow, bottom bar.
+// A narrow documented stack rail marks the slot; no tinted metric capsules.
 function compactCard(ctx,result,selection,family,metric) {
  const lock=family.startsWith('accessory'),small=family==='systemSmall';
  const s=FLOW_SIZES[family]||FLOW_SIZES.systemMedium;
@@ -254,18 +254,18 @@ function compactCard(ctx,result,selection,family,metric) {
  const dot={type:'stack',width:s.icon,height:s.icon,borderRadius:2,backgroundColor:SUMMARY_COLORS[slot],children:[]};
  const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
  const idRow=row([dot,...compactIdentity(alias,lock?'':result.suffix,family,s),spacer(),{...text(time,s.time,SUMMARY_MUTED),minScale:1}],4);
- const block=children=>({type:'stack',direction:'column',gap:s.gap,padding:CARD_PAD,flex:1,backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children});
+ const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:s.gap,padding:family==='systemMedium'?[0,7,0,7]:CARD_PAD,flex:1,backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[{type:'stack',direction:'column',width:2,height:small?26:family==='systemMedium'?30:80,borderRadius:1,backgroundColor:SUMMARY_COLORS[slot],children:[]},{type:'stack',direction:'column',gap:family==='systemMedium'?1:s.gap,flex:1,children}]});
  if(!result.data) return lock?{type:'stack',direction:'column',gap:2,children:[idRow,text(result.status,9,COLORS.accent)]}:block([idRow,text(result.status,small?9:11,COLORS.accent)]);
  const [fee,voice,flow]=result.data;
  if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...compactIdentity(alias,'',family,s),text(flow.value,s.value,COLORS.value,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED)],3)]};
  const feeColor=summaryFeeColor(fee,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD),slot);
  const valueColor=SUMMARY_COLORS[slot];
- const topRow=row([{...text(flow.title,s.title,SUMMARY_MUTED,'medium'),flex:1},text(flow.value,s.value,valueColor,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED,'medium'),...(metric.unlimited?[chip('不限量',s)]:[])],4);
- // The flow capsule is flexible and holds a spacer above its bar, so when the card is given extra
- // height the bar sinks to the bottom instead of leaving a dead tinted gap under the label.
- const flowCapsule={type:'stack',direction:'column',gap:s.fgap,padding:s.fpad,flex:1,backgroundColor:slotTint(slot),borderRadius:12,children:[topRow,spacer(),flowBar(slot,metric,s)]};
- const mid=small?[]:[row([miniCapsule(fee,slot,s,feeColor),miniCapsule(voice,slot,s)],6)];
- return block([idRow,...mid,flowCapsule]);
+ const column=(d,color,badge=false)=>({type:'stack',direction:'column',flex:1,gap:s.fgap,children:[...(badge&&family==='systemMedium'?[row([text(d.title,s.label,SUMMARY_MUTED,'medium'),chip('不限量',s)],2)]:[text(d.title,s.label,SUMMARY_MUTED,'medium')]),row([text(d.value,s.value,color,'semibold'),text(d.unit,s.unit,SUMMARY_MUTED)],2),...(badge&&family!=='systemMedium'?[chip('不限量',s)]:[])]});
+ // Small widgets keep the three identities and exact flow values, without cramming nine metrics.
+ const metrics=small?row([text(flow.title,s.title,SUMMARY_MUTED),spacer(),text(flow.value,s.value,valueColor,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED)],2):row([column(fee,feeColor),column(voice,SUMMARY_INK),column(flow,valueColor,metric.unlimited)],6);
+ const bottom={type:'stack',direction:'column',height:metric.unlimited?Math.max(BAR_H,s.tag*1.3):metric.ratio===null?SEP_H:BAR_H,children:[flowBar(slot,metric,s)]};
+ if(!small){metrics.alignItems='start';metrics.height=s.label*1.3+s.value*1.3+s.fgap+(metric.unlimited&&family!=='systemMedium'?s.tag*1.3+2+s.fgap:0);}
+ return block([idRow,metrics,spacer(),bottom]);
 }
 // Decide each card's bar: unlimited (no total + "已用" label) fades out; a configured total gives a
 // real used/total ratio; otherwise a relative length versus the max same-caliber value of the three.

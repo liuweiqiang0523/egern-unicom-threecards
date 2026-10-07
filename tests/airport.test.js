@@ -19,14 +19,14 @@ async function setupFlows(flows){
  return m;
 }
 // The bar is always the last child of the flow capsule, which is the last child of the card.
-const barOf=card=>card.children.at(-1).children.at(-1);
+const barOf=card=>card.children[1].children.at(-1).children.at(-1);
 const hexRGB=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
 function hsv(hex){const [r,g,b]=hexRGB(hex).map(v=>v/255);const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h=(h*60+360)%360;}return {h,d};}
 function colorStrings(n){const out=[];const visit=v=>{if(typeof v==='string'){if(/^#[0-9A-Fa-f]{6,8}$/.test(v))out.push(v);}else if(Array.isArray(v))v.forEach(visit);else if(v&&typeof v==='object')for(const x of Object.values(v))visit(x);};visit(n);return out;}
 test('summary slot palette is blue/purple/cyan and no colour is yellow or orange',async()=>{
  const m=await setup(used);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
- const dots=cards(t).map(c=>c.children[0].children[0].backgroundColor);
+ const dots=cards(t).map(c=>c.children[1].children[0].children[0].backgroundColor);
  assert.deepEqual(dots.map(c=>c.dark),['#B66CFF','#5EA7FF','#48D7C0']);
  assert.deepEqual(dots.map(c=>c.light),['#8843C2','#286CC4','#087F70']);
  assert.equal(new Set(dots.map(c=>c.dark)).size,3);
@@ -43,8 +43,8 @@ test('unlimited cards need no configuration: gradient fade, ∞ and a 不限量 
  assert.equal(texts(t).filter(x=>x==='407.44').length,3);
  assert.ok(!s.includes('%'));
  for(const card of cards(t)){
-  const cap=card.children.at(-1);
-  assert.ok(texts(cap.children[0]).includes('不限量'),'chip label');
+  const content=card.children[1];
+  assert.ok(texts(content.children[1]).includes('不限量'),'chip label');
   const bar=barOf(card);
   assert.equal(bar.direction,'row');
   const track=bar.children[0];

@@ -22,7 +22,7 @@ test('summary shows a 中国联通 title bar (module icon + text) at the top by 
  assert.equal(images(t).length,1); // exactly one icon, only in the title bar
  // the three cards still follow the title bar, each with its own slot square (not the icon)
  assert.equal(cards(t).length,3);
- assert.ok(cards(t).every(c=>c.children[0].children[0].type==='stack'));
+ assert.ok(cards(t).every(c=>c.children[1].children[0].children[0].type==='stack'));
  // no timestamp on the title bar itself
  assert.ok(!texts(bar).some(s=>/^\d{2}:\d{2}$/.test(s)));
 });

@@ -8,7 +8,7 @@ const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(tex
 // Slot-tinted card wash (dark) identifies each card after CARD_ORDER rearranges the rows.
 const cardDark=['#1D1F23','#1D1F23','#1D1F23'];
 
-test('every home summary card is one rounded slot-tinted block with a brighter 1px outline and card gap',async()=>{
+test('every home summary card is one neutral rounded block with a 1px outline and card gap',async()=>{
  for(const family of ['systemSmall','systemMedium','systemLarge','systemExtraLarge']){
   const m=mock();for(const p of phones)await capture(m,p);
   const t=await run({...m.ctx,widgetFamily:family,env:{VIEW:'all'}});
@@ -23,7 +23,7 @@ test('every home summary card is one rounded slot-tinted block with a brighter 1
    assert.equal(card.backgroundColor.light,'#F8F9FB',family);
    assert.equal(card.borderColor.dark,'#292B30',family);
    // the dark wash must stay the specified subtle 0x14..0x1F range, not a solid fill
-   assert.equal(card.children[0].children[0].backgroundColor.dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
+   assert.equal(card.children[1].children[0].children[0].backgroundColor.dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
    assert.equal(card.backgroundColor.dark.length,7,'neutral opaque card, no slot wash');
    assert.ok(Array.isArray(card.padding),family);
   });
