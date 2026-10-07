@@ -1,0 +1,44 @@
+# 三卡独立组件；先完成 StorageProbe 验证。
+name: 中国联通三卡
+description: 三卡独立捕获、缓存与显示；须先验证 StorageProbe
+icon: simcard.fill
+env_schema:
+  CARD1_PHONE:
+    name: 卡1手机号
+    description: 本机填写11位号码，不填Cookie
+  CARD2_PHONE:
+    name: 卡2手机号
+  CARD3_PHONE:
+    name: 卡3手机号
+  STORAGE_CONFIRMED:
+    name: 已通过跨脚本与组件共享探针
+    options: ["true", "false"]
+    default_value: "false"
+scriptings:
+  - generic:
+      name: unicom-threecards-render
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomThreeCards.js
+      timeout: 20
+  - http_request:
+      name: unicom-threecards-capture
+      match: '^https://m\.client\.10010\.com/mobileserviceimportant/home/queryUserInfoSeven(?:\?|$)'
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomThreeCards.js
+      timeout: 5
+      body_required: false
+mitm:
+  hostnames:
+    includes:
+      - m.client.10010.com
+widgets:
+  - name: 中国联通卡1
+    script_name: unicom-threecards-render
+    env:
+      CARD_SLOT: "1"
+  - name: 中国联通卡2
+    script_name: unicom-threecards-render
+    env:
+      CARD_SLOT: "2"
+  - name: 中国联通卡3
+    script_name: unicom-threecards-render
+    env:
+      CARD_SLOT: "3"
