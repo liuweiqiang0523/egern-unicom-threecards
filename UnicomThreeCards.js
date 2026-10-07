@@ -33,7 +33,8 @@ function safeTitle(value,fallback) {
  return typeof value==='string'&&value.trim()&&value.length<=24&&!/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/.test(value)&&!/(?:1[3-9]\d{9}|cookie|https?:\/\/)/i.test(value)?value:fallback;
 }
 function parse(res) {
- if(res?.code!=='Y'||!res.feeResource||!res.voiceResource||!res.flowResource) throw new Error('API');
+ if(res?.code!=='Y') throw new Error('API');
+ if(!res.feeResource||!res.voiceResource||!res.flowResource) throw new Error('DATA');
  const fields=[['feeResource','feePersent','元','dynamicFeeTitle','话费'],['voiceResource','voicePersent','分钟','dynamicVoiceTitle','语音'],['flowResource','flowPersent','MB','dynamicFlowTitle','流量']];
  return fields.map(([r,v,unit,t,fallback])=>{
   const value=res[r][v];
@@ -101,31 +102,34 @@ function widget(children,translucent=false) {
  return {type:'widget',backgroundColor:translucent?{light:'#FFFFFFB3',dark:'#2C2C2EB3'}:COLORS.bg,padding:[10,12,10,12],gap:8,refreshAfter:new Date(Date.now()+FRESH).toISOString(),children};
 }
 function capsule(d,center=false) {
- return {type:'stack',direction:'column',alignItems:'center',justifyContent:'center',...(center?{}:{flex:1}),padding:[7,center?20:8,7,center?20:8],gap:3,backgroundColor:COLORS.capsule,borderRadius:14,borderWidth:1,borderColor:COLORS.border,children:[text(d.title,10,COLORS.muted,'light'),row([text(d.value,22,COLORS.value,'semibold'),text(d.unit,10,COLORS.muted)],3)]};
+ return {type:'stack',direction:'column',alignItems:'center',...(center?{}:{flex:1}),padding:[7,center?20:8,7,center?20:8],gap:3,backgroundColor:COLORS.capsule,borderRadius:14,borderWidth:1,borderColor:COLORS.border,children:[text(d.title,10,COLORS.muted,'light'),row([text(d.value,22,COLORS.value,'semibold'),text(d.unit,10,COLORS.muted)],3)]};
 }
 function footer(status) {
  return row([spacer(),{type:'stack',width:42,height:3,borderRadius:2,backgroundColor:COLORS.border},spacer(),text(status,9,COLORS.muted)]);
 }
-function lockWidget(result,selection,family) {
+function lockWidget(result,selection,family,translucent,title) {
+ // Lock-screen containers must not inherit spacious home-screen padding.
+ const lock=children=>({...widget(children,translucent),padding:family==='accessoryInline'?0:4,gap:2});
  const d=result.data;
- if(!d) return widget([text('卡'+selection+' · '+result.status,11,COLORS.accent)]);
+ if(!d) return lock([{...text(title+' · 卡'+selection+' · '+result.status,11,COLORS.accent),maxLines:family==='accessoryInline'?1:2}]);
  const label=v=>v.title+' '+v.value+v.unit;
  const status=result.status==='已更新'?'': ' · '+result.status;
- if(family==='accessoryInline') return widget([text('卡'+selection+' '+label(d[0])+' · '+label(d[2])+status,11)]);
- if(family==='accessoryCircular') return widget([text(d[2].title,9),text(d[2].value,20,COLORS.value,'semibold'),text(d[2].unit+status,9)]);
- return widget([text('卡'+selection+' '+label(d[0]),12),text(label(d[1]),10),text(label(d[2])+status,10)]);
+ if(family==='accessoryInline') return lock([text(title+' · 卡'+selection+' '+label(d[0])+' · '+label(d[2])+status,11)]);
+ // Circular: only flow fits; its exact API label takes priority over a heading.
+ if(family==='accessoryCircular') return lock([text(d[2].title,9),{...text(d[2].value,20,COLORS.value,'semibold'),textAlign:'center'},text(d[2].unit+status,9)]);
+ return lock([text(title+' · 卡'+selection+' '+label(d[0]),12),text(label(d[1]),10),text(label(d[2])+status,10)]);
 }
 export default async function(ctx) {
  if(ctx.request) {capture(ctx);return;}
  const selection=String(ctx.env?.CARD_SLOT||'1');
  if(!['1','2','3'].includes(selection)) return widget([text('CARD_SLOT 只能为 1 / 2 / 3')]);
  const result=await load(ctx,Number(selection));
- const family=ctx.widgetFamily||'systemSmall';
- if(family.startsWith('accessory')) return lockWidget(result,selection,family);
+ const family=['systemSmall','systemMedium','systemLarge','systemExtraLarge','accessoryInline','accessoryCircular','accessoryRectangular'].includes(ctx.widgetFamily)?ctx.widgetFamily:'systemSmall';
  const translucent=[true,'true','on','1'].includes(ctx.env?.TRANSLUCENT);
  const title=safeTitle(ctx.env?.WIDGET_TITLE,'中国联通');
+ if(family.startsWith('accessory')) return lockWidget(result,selection,family,translucent,title);
  const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
- const heading=row([{type:'image',src:'sf-symbol:simcard.fill',color:COLORS.accent,width:17,height:17},text(title+' · 卡'+selection,12,COLORS.value,'semibold'),spacer(),text(time,10,COLORS.muted)]);
+ const heading=row([{type:'image',src:'sf-symbol:simcard.fill',color:COLORS.accent,width:17,height:17},{...text(title+' · 卡'+selection,12,COLORS.value,'semibold'),flex:1},spacer(),text(time,10,COLORS.muted)]);
  if(!result.data) return widget([heading,spacer(),{...text(result.status,13,COLORS.accent,'medium'),maxLines:2},text('打开联通 App 切换号码并查询余额',10,COLORS.muted),spacer()],translucent);
  const d=result.data;
  const content=family==='systemSmall'?[row([spacer(),capsule(d[0],true),spacer()],0),row(d.slice(1).map(v=>capsule(v)),7)]:[row(d.map(v=>capsule(v)),8)];

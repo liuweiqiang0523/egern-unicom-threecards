@@ -2,6 +2,20 @@
 name: 中国联通三卡
 description: 打开联通App切换三个号码查询余额，自动获取；三个独立组件
 icon: simcard.fill
+manual: https://github.com/liuweiqiang0523/egern-unicom-threecards/blob/main/INSTALL.md
+# Native Egern controls; defaults are placeholders, not module-level overrides.
+env_schema:
+  TRANSLUCENT:
+    name: 半透明背景
+    description: 开启背景透明度；不是系统磨砂材质。关闭恢复不透明背景。
+    default_value: "false"
+    options:
+      - "true"
+      - "false"
+  WIDGET_TITLE:
+    name: 组件标题
+    description: 自定义安全短标题，最多24字符；留空恢复中国联通。模块设置优先于单个组件。
+    default_value: 中国联通
 scriptings:
   - generic:
       name: unicom-threecards-render
