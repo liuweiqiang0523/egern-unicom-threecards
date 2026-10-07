@@ -40,7 +40,7 @@ test('module > widget > script settings contract preserves all three slots',asyn
  const result=await run({...m.ctx,env:{...moduleConfig.widgets[1].env,WIDGET_TITLE:'独立卡二'}});assert.match(content(result),/独立卡二 · 卡2/);
 });
 test('all sizes retain title semantics, supported attributes and bounded lock layout',async()=>{
- const allowed={widget:['type','children','backgroundColor','padding','gap','refreshAfter'],stack:['type','direction','alignItems','gap','children','flex','padding','backgroundColor','borderRadius','borderWidth','borderColor','width','height'],text:['type','text','font','textColor','maxLines','minScale','flex','textAlign'],image:['type','src','color','width','height'],spacer:['type','length','flex']};
+ const allowed={widget:['type','children','backgroundColor','padding','gap','refreshAfter'],stack:['type','direction','alignItems','gap','children','flex','padding','backgroundColor','backgroundGradient','borderRadius','borderWidth','borderColor','width','height'],text:['type','text','font','textColor','maxLines','minScale','flex','textAlign'],image:['type','src','color','width','height'],spacer:['type','length','flex']};
  for(const family of families){const m=mock();await capture(m);m.ctx.widgetFamily=family;m.ctx.env={TRANSLUCENT:'true',WIDGET_TITLE:'我的联通'};
   const normal=m.ctx.http.get;m.ctx.http.get=async(u,o)=>{const r=await normal(u,o),d=await r.json();d.flowResource.dynamicFlowTitle='已用流量';d.flowResource.flowPersent='123456789.123';return {status:200,json:async()=>d};};
   const result=await run(m.ctx);assert.match(content(result),/已用流量/);assert.ok(!content(result).includes('剩余'));assert.equal(result.backgroundColor.light,'#FFFFFFB3');

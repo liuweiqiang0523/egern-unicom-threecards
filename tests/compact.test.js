@@ -51,19 +51,24 @@ test('all settings retain exact titles, alias and cache timestamp without rerequ
  assert.equal(m.calls.length,3);assert.equal(t.backgroundColor.light,'#FFFFFFB3');assert.ok(texts(t).includes('我的三卡'));assert.ok(texts(t).includes('· 尾号0001'));
  assert.deepEqual([1,2,3].map(i=>m.ctx.storage.getJSON('egern.unicom3.v1.slot.'+i)),records);
 });
-test('medium summary keeps the airport-style row shape and never fakes a ratio',async()=>{
- const m=mock();for(const p of phones) await capture(m,p);
+test('medium summary is a three-row capsule card that never fakes a ratio',async()=>{
+ const m=mock();for(const p of phones)await capture(m,p);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
  assert.equal(t.children.length,3);
- for(const card of t.children){
-  assert.equal(card.type,'stack');assert.equal(card.gap,4);assert.ok(!card.backgroundColor);
-  const [head,bar,foot]=card.children;
-  assert.equal(head.type,'stack');assert.equal(bar.type,'stack');assert.equal(foot.type,'stack');
-  // No plan total configured: the bar collapses to a 2pt separator with no fill at all.
-  assert.equal(bar.height,2);assert.deepEqual(bar.children,[]);
-  assert.ok(head.children.every(n=>n.type==='stack'||n.font.size<=17));
-  assert.ok(foot.children.every(n=>n.type==='text'&&n.font.size<=12));
- }
+ t.children.forEach((card,i)=>{
+  assert.equal(card.type,'stack');assert.equal(card.gap,2);assert.ok(!card.backgroundColor);
+  const [idRow,mid,flowCap]=card.children;
+  assert.equal(idRow.type,'stack');assert.equal(mid.type,'stack');assert.equal(flowCap.type,'stack');
+  // row1: slot square + identity + right-aligned HH:mm, no big value on this line
+  assert.equal(idRow.children[0].type,'stack');assert.ok(idRow.children[0].width>0);
+  assert.equal(idRow.children.at(-1).type,'text');assert.match(idRow.children.at(-1).text,/^(\d{2}:\d{2}|--:--)$/);
+  // row2: two equal capsules side by side
+  assert.equal(mid.children.length,2);assert.ok(mid.children.every(c=>c.flex===1));
+  // row3: one full-width flow capsule (label + value over the bar), tinted with this card's slot
+  assert.equal(flowCap.children.length,2);
+  assert.equal(flowCap.backgroundColor.light,['#2F7FE021','#9B3FD621','#12A59421'][i]);
+  assert.equal(flowCap.children[1].children[0].backgroundGradient.type,'linear');
+ });
  assert.ok(!texts(t).join('|').includes('%'));
 });
 export {texts};
