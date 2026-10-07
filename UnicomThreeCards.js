@@ -245,14 +245,16 @@ function compactCard(ctx,result,selection,family,metric) {
  const dot={type:'stack',width:s.icon,height:s.icon,borderRadius:2,backgroundColor:SLOT_COLORS[slot],children:[]};
  const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
  const idRow=row([dot,...compactIdentity(alias,lock?'':result.suffix,family,s),spacer(),{...text(time,s.time,COLORS.muted),minScale:1}],4);
- const block=children=>({type:'stack',direction:'column',gap:s.gap,padding:CARD_PAD,backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children});
+ const block=children=>({type:'stack',direction:'column',gap:s.gap,padding:CARD_PAD,flex:1,backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children});
  if(!result.data) return lock?{type:'stack',direction:'column',gap:2,children:[idRow,text(result.status,9,COLORS.accent)]}:block([idRow,text(result.status,small?9:11,COLORS.accent)]);
  const [fee,voice,flow]=result.data;
  if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...compactIdentity(alias,'',family,s),text(flow.value,s.value,COLORS.value,'semibold'),text(flow.unit,s.unit,COLORS.muted)],3)]};
  const warning=lowBalance(fee,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD));
  const valueColor=flowSemantic(flow.title)==='remaining'?REMAIN:COLORS.value;
  const topRow=row([{...text(flow.title,s.title,COLORS.muted,'medium'),flex:1},text(flow.value,s.value,valueColor,'semibold'),text(flow.unit,s.unit,COLORS.muted,'medium'),...(metric.unlimited?[chip('不限量',s)]:[])],4);
- const flowCapsule={type:'stack',direction:'column',gap:s.fgap,padding:s.fpad,backgroundColor:slotTint(slot),borderRadius:12,children:[topRow,flowBar(slot,metric,s)]};
+ // The flow capsule is flexible and holds a spacer above its bar, so when the card is given extra
+ // height the bar sinks to the bottom instead of leaving a dead tinted gap under the label.
+ const flowCapsule={type:'stack',direction:'column',gap:s.fgap,padding:s.fpad,flex:1,backgroundColor:slotTint(slot),borderRadius:12,children:[topRow,spacer(),flowBar(slot,metric,s)]};
  const mid=small?[]:[row([miniCapsule(fee,slot,s,warning),miniCapsule(voice,slot,s,false)],6)];
  return block([idRow,...mid,flowCapsule]);
 }
@@ -298,15 +300,18 @@ async function compactWidget(ctx) {
  // Summary-only top title bar: module icon + a plain text title. WIDGET_TITLE wins when safe, else
  // 中国联通; an explicit SHOW_BRAND=false/off/0 hides the whole bar (including the icon). Time stays
  // on each card, never here. The single-card path below keeps its own inline heading and no such bar.
- // The bar is deliberately slim (11pt icon+text on medium, no vertical padding): on a phone the old
- // 15px icon + 13pt text block ate the room the three cards need.
+ // CRITICAL: the bar carries NO flex and no flex child. Egern makes any element whose subtree has a
+ // flex child height-flexible in the widget, so a flexed title used to swallow half the widget
+ // height (and nesting the cards made its share even bigger). A trailing spacer keeps the title left
+ // aligned without ever absorbing vertical space.
  const title=lock?'':safeTitle(ctx.env?.WIDGET_TITLE,brandHidden(ctx.env?.SHOW_BRAND)?'':'中国联通');
  const s=FLOW_SIZES[family]||FLOW_SIZES.systemMedium;
- const titleBar=title?[{type:'stack',direction:'row',alignItems:'center',gap:3,padding:[0,0,0,0],children:[{type:'image',src:ICON_URL,width:s.ticon,height:s.ticon,borderRadius:3,resizeMode:'contain'},{...text(title,s.thead,COLORS.value,'semibold'),flex:1}]}]:[];
+ const titleBar=title?[{type:'stack',direction:'row',alignItems:'center',gap:3,padding:[0,0,0,0],children:[{type:'image',src:ICON_URL,width:s.ticon,height:s.ticon,borderRadius:3,resizeMode:'contain'},text(title,s.thead,COLORS.value,'semibold'),spacer()]}]:[];
  const cardList=order.map(i=>compactCard(ctx,results[i],i+1,family,metrics[i]));
- // The title bar sits tight above the cards (TITLE_GAP); the cards keep their own wider CARD_GAP, so
- // the freed vertical room goes to the three rows rather than the heading.
- const children=titleBar.length?[titleBar[0],{type:'stack',direction:'column',gap:CARD_GAP,children:cardList}]:cardList;
+ // The title bar sits tight above the cards (TITLE_GAP) and stays at its natural height; the holder
+ // is the one flexible child, so the freed space goes to the three cards (each flex:1) instead of
+ // puffing up the heading.
+ const children=titleBar.length?[titleBar[0],{type:'stack',direction:'column',gap:CARD_GAP,flex:1,children:cardList}]:cardList;
  return {...widget(children,enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:small?6:family==='systemMedium'?6:family==='systemLarge'?7:8,gap:lock?2:titleBar.length?TITLE_GAP:CARD_GAP};
 }
 export default async function(ctx) {

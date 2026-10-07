@@ -58,8 +58,9 @@ test('medium summary is a three-row capsule card inside one rounded slot-tinted 
  assert.equal(cards(t).length,3);
  assert.equal(t.gap,2); // the title bar sits tight above the cards, freeing room for the three rows
  assert.equal(cardHolder(t).gap,7); // card-to-card spacing keeps the three blocks reading apart
+ assert.equal(cardHolder(t).flex,1); // the holder is the widget's one flexible child
  cards(t).forEach((card,i)=>{
-  assert.equal(card.type,'stack');assert.equal(card.gap,2);
+  assert.equal(card.type,'stack');assert.equal(card.gap,2);assert.equal(card.flex,1); // cards share the height
   // The whole card is one rounded block: slot wash over the base + a brighter 1px outline.
   assert.equal(card.borderRadius,16);assert.equal(card.borderWidth,1);assert.deepEqual(card.padding,[4,7,4,7]);
   assert.equal(card.backgroundColor.light,['#2F7FE01A','#9B3FD61A','#12A5941A'][i]);
@@ -73,10 +74,12 @@ test('medium summary is a three-row capsule card inside one rounded slot-tinted 
   // row2: two equal capsules side by side, each keeping its own slot tint
   assert.equal(mid.children.length,2);assert.ok(mid.children.every(c=>c.flex===1));
   assert.equal(mid.children[0].backgroundColor.light,['#2F7FE021','#9B3FD621','#12A59421'][i]);
-  // row3: one full-width flow capsule (label + value over the bar), tinted with this card's slot
-  assert.equal(flowCap.children.length,2);
+  // row3: one full-width flow capsule (label + value over the bar), tinted with this card's slot.
+  // It is flexible and holds a spacer above the bar so extra height sinks the bar to the bottom.
+  assert.equal(flowCap.children.length,3);
+  assert.equal(flowCap.children[1].type,'spacer');
   assert.equal(flowCap.backgroundColor.light,['#2F7FE021','#9B3FD621','#12A59421'][i]);
-  assert.equal(flowCap.children[1].children[0].backgroundGradient.type,'linear');
+  assert.equal(flowCap.children[2].children[0].backgroundGradient.type,'linear');
  });
  assert.ok(!texts(t).join('|').includes('%'));
 });

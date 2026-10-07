@@ -1,39 +1,55 @@
 <!doctype html><meta charset="utf-8"><title>三卡汇总 设计预览</title>
-<style>body{font:13px system-ui;background:#0e0f13;color:#eee;padding:26px;margin:0}.wrap{display:flex;gap:26px;flex-wrap:wrap}.box{width:360px}.cap{color:#9aa0ad;margin:0 0 8px}.cap b{color:#fff}.holder{border-radius:20px;overflow:hidden}.note{color:#7b8090;margin-top:18px;max-width:1140px}code{color:#c7ccd6}</style>
+<style>body{font:13px system-ui;background:#0e0f13;color:#eee;padding:26px;margin:0}.wrap{display:flex;gap:26px;flex-wrap:wrap}.box{width:338px}.cap{color:#9aa0ad;margin:0 0 8px}.cap b{color:#fff}.cap code{color:#c7ccd6}.holder{border-radius:20px;overflow:hidden}.note{color:#7b8090;margin-top:18px;max-width:1140px}code{color:#c7ccd6}</style>
 <h2 style="margin:0 0 6px">三卡合一 · 标题栏 + 每卡大胶囊块 + 流量条（设计预览）</h2>
-<p class="note"><b>设计预览，非实机截图。</b>合成测试数据，不是真实余额。本页直接执行仓库 <code>UnicomThreeCards.js</code> 并按返回的 DSL 构造 DOM；浏览器字体与 Egern 原生渲染不同。汇总顶部默认显示一行<b>瘦身</b>标题栏：模块图标（同一 PNG，圆角 3、contain，中号约 11pt）＋「中国联通」（半粗 11px），行内零留白、距第一张卡约 2pt（整行十几 pt 高），可被安全的自定义标题覆盖，<code>SHOW_BRAND=false/off/0</code> 时整行（图标＋文字）隐藏。每张卡是一个圆角大胶囊块（卡槽色低 alpha 淡染 + 1px 略亮描边，卡间留白 7pt），内部话费/语音/流量胶囊保持各自卡槽色淡染；卡片行前的卡槽色小方块保持不变。卡槽配色蓝/紫/青；无限流量卡流量条渐变淡出并显示 ∞ 与「不限量」；有参考总量才画真实比例；「卡片顺序」可调整三卡显示次序。<b>预览中图标以本地文件显示，正式 DSL 使用同一文件的远程 raw URL。</b></p>
+<p class="note"><b>设计预览，非实机截图。</b>合成测试数据，不是真实余额。本页直接执行仓库 <code>UnicomThreeCards.js</code> 并按返回的 DSL 构造 DOM。<b>本页模拟 Egern 的竖直分配</b>：组件高度固定为大号 338×354，只有“子树里含 flex 的子节点”会吸收剩余高度（spacer 不会）——这正是真机行为；早前的预览是内容自适应，所以看不出标题栏被撑高。汇总顶部为瘦身标题栏：模块图标（同一 PNG，圆角 3、contain，中号约 11pt）＋「中国联通」（半粗 11px），<b>不含任何 flex</b>、行内零留白、距第一张卡约 2pt，因此保持自然高度（约 13px）；剩余高度全部交给卡片（每卡 <code>flex:1</code>），流量胶囊也 <code>flex:1</code> 并把横条压到底部。每张卡是一个圆角大胶囊块（卡槽色低 alpha 淡染 + 1px 略亮描边，卡间留白 7pt），内部话费/语音/流量胶囊保持各自卡槽色淡染。卡槽配色蓝/紫/青；无限流量卡流量条渐变淡出并显示 ∞ 与「不限量」；有参考总量才画真实比例。<b>浏览器字体与 Egern 原生渲染不同（同尺寸下浏览器行高略大，故中号 158pt 在浏览器里会溢出，实机以 Egern 为准）；预览中图标以本地文件显示，正式 DSL 使用同一文件的远程 raw URL。</b></p>
 <div class="wrap">
- <div class="box"><p class="cap"><b>① 标题栏 + 无限流量卡：什么都不用填</b><br>顶部标题栏（图标＋中国联通）；没有套餐总量 → 流量条向右渐变淡出、末端 ∞、标记「不限量」，绝不出现百分比；每卡一个淡染胶囊块</p><div class="holder" id="a"></div></div>
+ <div class="box"><p class="cap"><b>① 标题栏 + 无限流量卡：什么都不用填</b><br>顶部瘦身标题栏（图标＋中国联通，<b>无 flex 所以不会被撑高</b>）；没有套餐总量 → 流量条向右渐变淡出、末端 ∞、标记「不限量」，绝不出现百分比</p><div class="holder" id="a"></div></div>
  <div class="box"><p class="cap"><b>② 给有配额的卡填一次参考总量</b><br>卡2 填 500GB → 真实比例填充（剩余 120GB → 已用 76%），其余卡仍为无限淡出</p><div class="holder" id="b"></div></div>
  <div class="box"><p class="cap"><b>③ 可调卡片顺序：CARD_ORDER=3,1,2</b><br>只改汇总显示顺序，卡槽与存储键不变；单卡组件不受影响</p><div class="holder" id="c"></div></div>
- <div class="box" style="width:360px"><p class="cap"><b>④ 紧凑标题栏对比（本次瘦身）</b><br>上＝旧标题栏示意（图标 15／文字 13／距首卡 9、卡间 9），下＝本次（图标 11／文字 11／距首卡 2、卡间 7）。图为真实 JS 生成 DSL 渲染，合成数据</p><div class="holder" id="before"></div><div style="height:12px"></div><div class="holder" id="after"></div></div>
+ <div class="box"><p class="cap"><b>④ 标题栏 flex 对比（本次真正修复）</b><br>上＝旧标题栏（文字带 <code>flex:1</code>）→ Egern 把剩余高度分给它，标题行被撑掉半屏；下＝本次（标题无 flex、只用 spacer）→ 标题约 13px，剩余高度归三张卡</p><div class="holder" id="before"></div><div style="height:12px"></div><div class="holder" id="after"></div></div>
 </div>
 <script type="module">
 import run from '../UnicomThreeCards.js';
 const color=c=>typeof c==='object'?c.dark:c;
 const localSrc=src=>String(src).includes('unicom-icon.png')?'../assets/unicom-icon.png':src;
-function render(n){const e=document.createElement('div');e.style.boxSizing='border-box';
+// Egern hands a widget child the leftover height when that child's subtree contains `flex` (a spacer
+// does NOT hoist). Emulate that here so the browser layout matches the phone instead of auto-sizing.
+const hasFlex=n=>!!(n&&n.flex)||((n&&n.children)||[]).some(hasFlex);
+const FRAME={systemSmall:[158,158],systemMedium:[338,158],systemLarge:[338,354],systemExtraLarge:[500,354],accessoryRectangular:[170,76],accessoryCircular:[76,76],accessoryInline:[338,26]};
+function render(n,vertical){
+ const e=document.createElement('div');e.style.boxSizing='border-box';
  if(n.type==='image'){const img=document.createElement('img');img.src=localSrc(n.src);img.style.width=(n.width||15)+'px';img.style.height=(n.height||15)+'px';img.style.objectFit=n.resizeMode||'contain';img.style.display='block';if(n.borderRadius)img.style.borderRadius=n.borderRadius+'px';e.append(img);e.style.width=(n.width||15)+'px';return e;}
  if(n.type==='text'){e.textContent=n.text;e.style.fontSize=n.font.size+'px';e.style.fontWeight={regular:400,medium:500,semibold:600,bold:700}[n.font.weight];e.style.color=color(n.textColor);e.style.whiteSpace='nowrap';e.style.overflow='hidden';e.style.textOverflow='ellipsis';}
- else{e.style.display='flex';e.style.flexDirection=n.direction==='row'?'row':'column';e.style.alignItems=n.alignItems||'stretch';if(n.gap)e.style.gap=n.gap+'px';if(n.padding!==undefined)e.style.padding=Array.isArray(n.padding)?n.padding.map(v=>v+'px').join(' '):n.padding+'px';if(n.backgroundGradient){const g=n.backgroundGradient;e.style.background='linear-gradient(90deg,'+color(g.colors[0])+','+color(g.colors[1])+')';}else if(n.backgroundColor)e.style.background=color(n.backgroundColor);if(n.borderWidth)e.style.border=n.borderWidth+'px solid '+(n.borderColor?color(n.borderColor):'transparent');if(n.borderRadius)e.style.borderRadius=n.borderRadius+'px';if(n.width)e.style.width=n.width+'px';if(n.height)e.style.height=n.height+'px';if(n.type==='spacer')e.style.flex='1';for(const c of n.children||[])e.append(render(c));}
- if(n.flex)e.style.flex=n.flex+' 1 0';e.style.minWidth='0';return e;}
+ else{
+  const col=n.type==='widget'||n.direction!=='row';
+  e.style.display='flex';e.style.flexDirection=col?'column':'row';e.style.alignItems=n.alignItems||'stretch';
+  if(n.gap)e.style.gap=n.gap+'px';
+  if(n.padding!==undefined)e.style.padding=Array.isArray(n.padding)?n.padding.map(v=>v+'px').join(' '):n.padding+'px';
+  if(n.backgroundGradient){const g=n.backgroundGradient;e.style.background='linear-gradient(90deg,'+color(g.colors[0])+','+color(g.colors[1])+')';}else if(n.backgroundColor)e.style.background=color(n.backgroundColor);
+  if(n.borderWidth)e.style.border=n.borderWidth+'px solid '+(n.borderColor?color(n.borderColor):'transparent');
+  if(n.borderRadius)e.style.borderRadius=n.borderRadius+'px';
+  if(n.width)e.style.width=n.width+'px';
+  if(n.height)e.style.height=n.height+'px';
+  if(n.type==='spacer')e.style.flex=col?'1 1 0px':'1 1 0';
+  for(const c of n.children||[]){
+   const el=render(c,col);
+   if(col&&hasFlex(c)){el.style.flex='1 1 0px';el.style.minHeight='0';}
+   else if(c.flex)el.style.flex=String(c.flex)+' 1 auto';
+   e.append(el);
+  }
+ }
+ if(n.flex&&n.type==='widget')e.style.flex=String(n.flex)+' 1 auto';
+ e.style.minWidth='0';
+ return e;
+}
 const rows=[['双不限','剩余话费','12.34','元','剩余语音','200','分钟','已用流量','320.50','GB'],['私人','剩余话费','88.00','元','剩余语音','500','分钟','剩余通用流量','120.00','GB'],['备用','剩余话费','5.00','元','剩余语音','1000','分钟','已用流量','90.00','GB']];
 function fixture(){const m=new Map();rows.forEach((r,i)=>{m.set('egern.unicom3.v1.slot.'+(i+1),{phone:'1300000000'+(i+1),cookie:'synthetic',capturedAt:1,updatedAt:Date.now()-600000,dataSchema:2,data:[{title:r[1],value:r[2],unit:r[3]},{title:r[4],value:r[5],unit:r[6]},{title:r[7],value:r[8],unit:r[9]}]});});return m;}
-async function draw(id,env){const m=fixture();const t=await run({env:{VIEW:'all',...env},widgetFamily:'systemMedium',storage:{getJSON:k=>m.get(k),setJSON:(k,v)=>m.set(k,v)},http:{get:()=>{throw Error('fixture cache only')}}});document.getElementById(id).replaceChildren(render(t));}
+function frame(root,family){const f=FRAME[family]||FRAME.systemLarge;root.style.width=f[0]+'px';root.style.height=f[1]+'px';root.style.overflow='hidden';return root;}
+async function draw(id,env,family='systemLarge',mangle){const m=fixture();const t=await run({env:{VIEW:'all',...env},widgetFamily:family,storage:{getJSON:k=>m.get(k),setJSON:(k,v)=>m.set(k,v)},http:{get:()=>{throw Error('fixture cache only')}}});if(mangle)mangle(t);document.getElementById(id).replaceChildren(frame(render(t),family));}
 await draw('a',{CARD1_NAME:'双不限',CARD2_NAME:'私人',CARD3_NAME:'备用'});
 await draw('b',{CARD1_NAME:'双不限',CARD2_NAME:'私人',CARD3_NAME:'备用',CARD2_TOTAL:'500GB'});
 await draw('c',{CARD1_NAME:'双不限',CARD2_NAME:'私人',CARD3_NAME:'备用',CARD_ORDER:'3,1,2'});
-async function drawCompare(){
- const m=fixture();
- const env={VIEW:'all',CARD1_NAME:'双不限',CARD2_NAME:'私人',CARD3_NAME:'备用'};
- const t=await run({env,widgetFamily:'systemMedium',storage:{getJSON:k=>m.get(k),setJSON:(k,v)=>m.set(k,v)},http:{get:()=>{throw Error('fixture cache only')}}});
- // A/B illustration only: restore the previous, heavier title bar on a copy so the slimming is visible.
- const before=JSON.parse(JSON.stringify(t));
- const bar=before.children[0];
- bar.children[0].width=15;bar.children[0].height=15;bar.children[1].font.size=13;bar.gap=9;before.gap=9;
- if(before.children[1]&&typeof before.children[1].gap==='number')before.children[1].gap=9;
- document.getElementById('before').replaceChildren(render(before));
- document.getElementById('after').replaceChildren(render(t));
-}
-await drawCompare();
+// Re-create the OLD bug: put flex back on the title text so the heading takes the leftover height.
+await draw('before',{CARD1_NAME:'双不限',CARD2_NAME:'私人',CARD3_NAME:'备用'},'systemLarge',t=>{const bar=t.children[0];bar.children[1]={...bar.children[1],flex:1};bar.children.pop();});
+await draw('after',{CARD1_NAME:'双不限',CARD2_NAME:'私人',CARD3_NAME:'备用'});
 </script>

@@ -63,6 +63,23 @@ test('the medium title bar is slim: small icon/text, no vertical padding and a t
  assert.equal(cards(t).length,3);
 });
 
+test('the summary title bar is never height-flexible: no flex anywhere in its subtree',async()=>{
+ // Egern makes an element height-flexible when it (or a direct child) carries flex, and the widget
+ // then hands it the leftover height. A flexed title bar swallowed ~half the widget on device, so
+ // the bar must stay flex-free and use a trailing spacer for left alignment instead.
+ const t=await summary();
+ const bar=t.children[0];
+ const flexy=n=>!!n.flex||(n.children||[]).some(flexy);
+ assert.ok(!flexy(bar),'the title bar subtree must contain no flex');
+ assert.ok(!Object.hasOwn(bar,'flex'),'the title bar itself must not be flexible');
+ assert.equal(bar.children.at(-1).type,'spacer','the title bar uses a spacer, not flex, to fill width');
+ // the widget's only flexible child is the card holder, which gives the freed height to the cards
+ assert.equal(t.children.length,2);
+ assert.equal(t.children[1].flex,1);
+ assert.ok(!Object.hasOwn(t.children[0],'flex'));
+});
+
+
 test('SHOW_BRAND true/on/1 or unset keeps the title bar',async()=>{
  for(const v of [undefined,true,'true','on','1']){
   const t=await summary(v===undefined?undefined:{SHOW_BRAND:v});
