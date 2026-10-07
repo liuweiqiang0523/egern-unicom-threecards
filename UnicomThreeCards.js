@@ -109,8 +109,10 @@ async function displayResult(ctx,selection) {
 }
 // Egern's documented JSON DSL; alpha colors do not request an iOS blur material.
 const COLORS={bg:{light:'#FFFFFF',dark:'#2C2C2E'},value:{light:'#1C1C1E',dark:'#FFFFFF'},muted:{light:'#62626A',dark:'#C4C4CC'},accent:{light:'#E60012',dark:'#FF375F'}};
-// Same PNG file as the module icon; referenced by URL so nothing is inlined into the script.
-const ICON_URL='https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/assets/unicom-icon.png';
+// Title-bar icon: an SF Symbol resolved by Egern itself, so it never depends on a network fetch.
+// A remote PNG rendered as a "?" placeholder on device whenever raw.githubusercontent.com was
+// unreachable — the upstream widget uses the same `sf-symbol:<name>` form for its icons.
+const ICON_SRC='sf-symbol:simcard.fill';
 function text(value,size=11,color=COLORS.value,weight='regular') {
  return {type:'text',text:value,font:{size,weight},textColor:color,maxLines:1,minScale:0.55};
 }
@@ -134,7 +136,7 @@ const BAR_H=4, SEP_H=2;
 const CARD_RADIUS=16, CARD_GAP=7, TITLE_GAP=2, CARD_PAD=[4,7,4,7];
 const UNIT_MB={KB:1/1024,M:1,MB:1,G:1024,GB:1024,T:1024*1024,TB:1024*1024};
 // thead/ticon: the summary's slim top title bar (text / icon), kept small so the cards get the room.
-const FLOW_SIZES={systemSmall:{name:10,unit:8,title:8,value:10,label:8,tag:7,time:8,icon:6,thead:10,ticon:10,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:9,unit:8,title:8,value:10,label:8,tag:7,time:7,icon:6,thead:11,ticon:11,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:12,unit:10,title:10,value:13,label:10,tag:9,time:9,icon:7,thead:12,ticon:12,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:13,unit:10,title:11,value:14,label:11,tag:10,time:10,icon:8,thead:13,ticon:13,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
+const FLOW_SIZES={systemSmall:{name:10,unit:8,title:8,value:10,label:8,tag:7,time:8,icon:6,thead:11,ticon:12,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:9,unit:8,title:8,value:10,label:8,tag:7,time:7,icon:6,thead:12,ticon:13,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:12,unit:10,title:10,value:13,label:10,tag:9,time:9,icon:7,thead:13,ticon:14,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:13,unit:10,title:11,value:14,label:11,tag:10,time:10,icon:8,thead:14,ticon:15,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
 // Which resource the API title describes; never inferred from the value itself.
 function flowSemantic(title) {
  if(typeof title!=='string') return 'neutral';
@@ -306,7 +308,7 @@ async function compactWidget(ctx) {
  // aligned without ever absorbing vertical space.
  const title=lock?'':safeTitle(ctx.env?.WIDGET_TITLE,brandHidden(ctx.env?.SHOW_BRAND)?'':'中国联通');
  const s=FLOW_SIZES[family]||FLOW_SIZES.systemMedium;
- const titleBar=title?[{type:'stack',direction:'row',alignItems:'center',gap:3,padding:[0,0,0,0],children:[{type:'image',src:ICON_URL,width:s.ticon,height:s.ticon,borderRadius:3,resizeMode:'contain'},text(title,s.thead,COLORS.value,'semibold'),spacer()]}]:[];
+ const titleBar=title?[{type:'stack',direction:'row',alignItems:'center',gap:3,padding:[0,0,0,0],children:[{type:'image',src:ICON_SRC,width:s.ticon,height:s.ticon,borderRadius:3,resizeMode:'contain'},text(title,s.thead,COLORS.value,'semibold'),spacer()]}]:[];
  const cardList=order.map(i=>compactCard(ctx,results[i],i+1,family,metrics[i]));
  // The title bar sits tight above the cards (TITLE_GAP) and stays at its natural height; the holder
  // is the one flexible child, so the freed space goes to the three cards (each flex:1) instead of

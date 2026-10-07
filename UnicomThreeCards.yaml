@@ -1,7 +1,7 @@
 # 自动捕获前三个号码，按首次捕获顺序绑定卡1/2/3。默认为单卡组件。
 name: 中国联通
 description: 打开联通App查询余额自动获取；默认一张卡，可另加卡2/卡3或三卡汇总
-icon: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/assets/unicom-icon.png
+icon: https://cdn.jsdelivr.net/gh/liuweiqiang0523/egern-unicom-threecards@main/assets/unicom-icon.png
 manual: https://github.com/liuweiqiang0523/egern-unicom-threecards/blob/main/INSTALL.md
 # Native Egern controls; defaults are placeholders, not module-level overrides.
 env_schema:

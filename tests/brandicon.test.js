@@ -5,7 +5,8 @@ import {execFileSync} from 'node:child_process';
 import run from '../UnicomThreeCards.js';
 import {mock,capture,phones,cards} from './helpers.js';
 
-const RAW='https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/assets/unicom-icon.png';
+const ICON_SRC='sf-symbol:simcard.fill';
+const MODULE_ICON='https://cdn.jsdelivr.net/gh/liuweiqiang0523/egern-unicom-threecards@main/assets/unicom-icon.png';
 const nodes=n=>[n,...(n.children||[]).flatMap(nodes)];
 const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(texts)];
 const images=n=>nodes(n).filter(x=>x.type==='image');
@@ -15,7 +16,7 @@ test('summary shows a 中国联通 title bar (module icon + text) at the top by 
  const t=await summary();
  const bar=t.children[0];
  assert.equal(bar.type,'stack');assert.equal(bar.direction,'row');
- assert.equal(bar.children[0].type,'image');assert.equal(bar.children[0].src,RAW);
+ assert.equal(bar.children[0].type,'image');assert.equal(bar.children[0].src,ICON_SRC);
  assert.ok(bar.children[0].width>0&&bar.children[0].height>0);
  assert.ok(texts(bar).includes('中国联通'));
  assert.equal(images(t).length,1); // exactly one icon, only in the title bar
@@ -48,15 +49,16 @@ test('the medium title bar is slim: small icon/text, no vertical padding and a t
  const t=await summary();
  const bar=t.children[0];
  assert.equal(bar.type,'stack');assert.equal(bar.direction,'row');
- // one compact line: icon and title text capped at 11pt on medium
- assert.ok(bar.children[0].width<=11&&bar.children[0].height<=11,'title icon must be <=11pt');
+ // one compact line: the title text stays a modest 12pt on medium, icon one step larger so the
+ // glyph reads at the same height as the CJK text
+ assert.ok(bar.children[0].width<=14&&bar.children[0].height<=14,'title icon must be <=14pt');
  const label=bar.children.find(c=>c.type==='text');
- assert.ok(label.font.size<=11,'title text must be <=11pt');
+ assert.ok(label.font.size>=11&&label.font.size<=14,'title text must stay in the 11-14pt band');
  // zero (at most 1pt) vertical padding keeps the bar from adding its own height
  assert.ok((bar.padding?.[0]??0)<=1&&(bar.padding?.[2]??0)<=1,'title bar vertical padding must be 0-1');
- // intrinsic bar height stays within the slim budget (old bar was a 15px icon + 13pt text + 9pt gap)
+ // intrinsic bar height stays within the budget (font size drives it, never flex)
  const barH=Math.max(bar.children[0].height||0,label.font.size*1.25)+(bar.padding?.[0]||0)+(bar.padding?.[2]||0);
- assert.ok(barH<=16,'title bar height '+barH+' exceeds 16pt');
+ assert.ok(barH<=18,'title bar height '+barH+' exceeds 18pt');
  // the bar sits 2-3pt above the first card, which keeps its own wider spacing
  assert.equal(t.gap,2);
  const holder=t.children[1];assert.equal(holder.type,'stack');assert.equal(holder.gap,7);
@@ -79,6 +81,18 @@ test('the summary title bar is never height-flexible: no flex anywhere in its su
  assert.ok(!Object.hasOwn(t.children[0],'flex'));
 });
 
+test('the title-bar icon is an SF Symbol so it never shows a "?" placeholder',async()=>{
+ // A remote PNG (raw.githubusercontent.com) rendered as an iOS "?" placeholder on device whenever
+ // the fetch failed; the upstream widget resolves `sf-symbol:<name>` locally instead, so the icon
+ // must stay a symbol reference and never become an http(s) URL again.
+ const t=await summary();
+ const icon=t.children[0].children[0];
+ assert.equal(icon.type,'image');
+ assert.ok(icon.src.startsWith('sf-symbol:'),'icon src must be an sf-symbol reference');
+ assert.ok(!/^https?:/i.test(icon.src),'icon must not depend on a network fetch');
+ assert.ok(icon.width>=12&&icon.height>=12,'icon must be big enough to read next to 13pt text');
+});
+
 
 test('SHOW_BRAND true/on/1 or unset keeps the title bar',async()=>{
  for(const v of [undefined,true,'true','on','1']){
@@ -98,9 +112,9 @@ test('the single-card path never renders the summary title bar or its icon',asyn
  }
 });
 
-test('all three module YAMLs point icon at the raw PNG that exists in the repo',async()=>{
+test('all three module YAMLs point icon at the CDN PNG that exists in the repo',async()=>{
  const yaml=p=>JSON.parse(execFileSync('ruby',['-rjson','-ryaml','-e','puts JSON.generate(YAML.load_file(ARGV[0]))',p],{encoding:'utf8'}));
- for(const p of ['UnicomThreeCards.yaml','UnicomThreeCardsCompact.yaml','UnicomCapture.yaml'])assert.equal(yaml(p).icon,RAW,p);
+ for(const p of ['UnicomThreeCards.yaml','UnicomThreeCardsCompact.yaml','UnicomCapture.yaml'])assert.equal(yaml(p).icon,MODULE_ICON,p);
  assert.ok(existsSync('assets/unicom-icon.png'),'icon asset must exist');
  const head=readFileSync('assets/unicom-icon.png').subarray(0,8);
  assert.deepEqual([...head],[0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a],'icon must be a real PNG');
