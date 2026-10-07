@@ -10,7 +10,12 @@ function mock(){
 }
 async function capture(m,p=phones[0],cookie='mock-session=A',url=API+'?desmobiel='+p){return run({...m.ctx,request:{url,headers:{Cookie:cookie}}});}
 const key=p=>'egern.unicom3.v1.slot.'+(phones.indexOf(p)+1);
-// A summary widget's children are [optional title bar, card1..card3]; the three cards are the rounded
-// slot-tinted blocks (borderRadius 16), so this filters out the new top title bar.
-const cards=w=>(w.children||[]).filter(c=>c&&c.type==='stack'&&c.borderRadius===16);
-export {mock,capture,phones,API,key,cards};
+// A summary widget's children are [optional title bar, (card holder stack)] or just [card1..card3].
+// The three cards are the rounded slot-tinted blocks (borderRadius 16); walk the whole tree so the
+// cards are found whether or not the title bar wraps them in a holder (see eslint-free flatten).
+const flatten=n=>[n,...(n.children||[]).flatMap(flatten)];
+const cards=w=>flatten(w).filter(c=>c&&c.type==='stack'&&c.borderRadius===16);
+// The column stack that holds the three cards when a title bar is present; its gap is the card
+// spacing. Returns undefined when there is no title bar (cards are direct children then).
+const cardHolder=w=>(w.children||[]).find(c=>c&&c.type==='stack'&&(c.children||[]).some(x=>x&&x.borderRadius===16));
+export {mock,capture,phones,API,key,cards,cardHolder};

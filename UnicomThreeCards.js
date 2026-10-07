@@ -131,9 +131,10 @@ const CHIP_BG={light:'#ECECF1',dark:'#3A3A3C'};
 const REMAIN={light:'#12833F',dark:'#31D05A'};
 const BAR_H=4, SEP_H=2;
 // Summary card block: full-width rounded wash per card so the three cards read apart on a phone.
-const CARD_RADIUS=16, CARD_GAP=9, CARD_PAD=[4,7,4,7];
+const CARD_RADIUS=16, CARD_GAP=7, TITLE_GAP=2, CARD_PAD=[4,7,4,7];
 const UNIT_MB={KB:1/1024,M:1,MB:1,G:1024,GB:1024,T:1024*1024,TB:1024*1024};
-const FLOW_SIZES={systemSmall:{name:10,unit:8,title:8,value:10,label:8,tag:7,time:8,icon:6,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:9,unit:8,title:8,value:10,label:8,tag:7,time:7,icon:6,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:12,unit:10,title:10,value:13,label:10,tag:9,time:9,icon:7,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:13,unit:10,title:11,value:14,label:11,tag:10,time:10,icon:8,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
+// thead/ticon: the summary's slim top title bar (text / icon), kept small so the cards get the room.
+const FLOW_SIZES={systemSmall:{name:10,unit:8,title:8,value:10,label:8,tag:7,time:8,icon:6,thead:10,ticon:10,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:9,unit:8,title:8,value:10,label:8,tag:7,time:7,icon:6,thead:11,ticon:11,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:12,unit:10,title:10,value:13,label:10,tag:9,time:9,icon:7,thead:12,ticon:12,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:13,unit:10,title:11,value:14,label:11,tag:10,time:10,icon:8,thead:13,ticon:13,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
 // Which resource the API title describes; never inferred from the value itself.
 function flowSemantic(title) {
  if(typeof title!=='string') return 'neutral';
@@ -297,9 +298,16 @@ async function compactWidget(ctx) {
  // Summary-only top title bar: module icon + a plain text title. WIDGET_TITLE wins when safe, else
  // 中国联通; an explicit SHOW_BRAND=false/off/0 hides the whole bar (including the icon). Time stays
  // on each card, never here. The single-card path below keeps its own inline heading and no such bar.
+ // The bar is deliberately slim (11pt icon+text on medium, no vertical padding): on a phone the old
+ // 15px icon + 13pt text block ate the room the three cards need.
  const title=lock?'':safeTitle(ctx.env?.WIDGET_TITLE,brandHidden(ctx.env?.SHOW_BRAND)?'':'中国联通');
- const titleBar=title?[row([{type:'image',src:ICON_URL,width:15,height:15,borderRadius:3,resizeMode:'contain'},{...text(title,13,COLORS.value,'semibold'),flex:1}],5)]:[];
- return {...widget([...titleBar,...order.map(i=>compactCard(ctx,results[i],i+1,family,metrics[i]))],enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:small?6:family==='systemMedium'?5:8,gap:lock?2:CARD_GAP};
+ const s=FLOW_SIZES[family]||FLOW_SIZES.systemMedium;
+ const titleBar=title?[{type:'stack',direction:'row',alignItems:'center',gap:3,padding:[0,0,0,0],children:[{type:'image',src:ICON_URL,width:s.ticon,height:s.ticon,borderRadius:3,resizeMode:'contain'},{...text(title,s.thead,COLORS.value,'semibold'),flex:1}]}]:[];
+ const cardList=order.map(i=>compactCard(ctx,results[i],i+1,family,metrics[i]));
+ // The title bar sits tight above the cards (TITLE_GAP); the cards keep their own wider CARD_GAP, so
+ // the freed vertical room goes to the three rows rather than the heading.
+ const children=titleBar.length?[titleBar[0],{type:'stack',direction:'column',gap:CARD_GAP,children:cardList}]:cardList;
+ return {...widget(children,enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:small?6:family==='systemMedium'?6:family==='systemLarge'?7:8,gap:lock?2:titleBar.length?TITLE_GAP:CARD_GAP};
 }
 export default async function(ctx) {
  if(ctx.request) {capture(ctx);return;}

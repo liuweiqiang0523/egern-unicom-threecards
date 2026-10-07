@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import run from '../UnicomThreeCards.js';
-import {mock,capture,phones,cards} from './helpers.js';
+import {mock,capture,phones,cards,cardHolder} from './helpers.js';
 const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(texts)];
 test('all renders three compact independent rows with exact API flow semantics',async()=>{
  const m=mock();for(const p of phones) await capture(m,p);
@@ -56,7 +56,8 @@ test('medium summary is a three-row capsule card inside one rounded slot-tinted 
  const m=mock();for(const p of phones)await capture(m,p);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
  assert.equal(cards(t).length,3);
- assert.equal(t.gap,9); // card-to-card spacing so the three blocks read apart
+ assert.equal(t.gap,2); // the title bar sits tight above the cards, freeing room for the three rows
+ assert.equal(cardHolder(t).gap,7); // card-to-card spacing keeps the three blocks reading apart
  cards(t).forEach((card,i)=>{
   assert.equal(card.type,'stack');assert.equal(card.gap,2);
   // The whole card is one rounded block: slot wash over the base + a brighter 1px outline.

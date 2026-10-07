@@ -1,11 +1,12 @@
 <!doctype html><meta charset="utf-8"><title>三卡汇总 设计预览</title>
 <style>body{font:13px system-ui;background:#0e0f13;color:#eee;padding:26px;margin:0}.wrap{display:flex;gap:26px;flex-wrap:wrap}.box{width:360px}.cap{color:#9aa0ad;margin:0 0 8px}.cap b{color:#fff}.holder{border-radius:20px;overflow:hidden}.note{color:#7b8090;margin-top:18px;max-width:1140px}code{color:#c7ccd6}</style>
 <h2 style="margin:0 0 6px">三卡合一 · 标题栏 + 每卡大胶囊块 + 流量条（设计预览）</h2>
-<p class="note"><b>设计预览，非实机截图。</b>合成测试数据，不是真实余额。本页直接执行仓库 <code>UnicomThreeCards.js</code> 并按返回的 DSL 构造 DOM；浏览器字体与 Egern 原生渲染不同。汇总顶部默认显示一行标题栏：模块图标（同一 PNG，圆角 3、contain）＋「中国联通」（半粗 13px），可被安全的自定义标题覆盖，<code>SHOW_BRAND=false/off/0</code> 时整行（图标＋文字）隐藏。每张卡是一个圆角大胶囊块（卡槽色低 alpha 淡染 + 1px 略亮描边，卡间留白），内部话费/语音/流量胶囊保持各自卡槽色淡染；卡片行前的卡槽色小方块保持不变。卡槽配色蓝/紫/青；无限流量卡流量条渐变淡出并显示 ∞ 与「不限量」；有参考总量才画真实比例；「卡片顺序」可调整三卡显示次序。<b>预览中图标以本地文件显示，正式 DSL 使用同一文件的远程 raw URL。</b></p>
+<p class="note"><b>设计预览，非实机截图。</b>合成测试数据，不是真实余额。本页直接执行仓库 <code>UnicomThreeCards.js</code> 并按返回的 DSL 构造 DOM；浏览器字体与 Egern 原生渲染不同。汇总顶部默认显示一行<b>瘦身</b>标题栏：模块图标（同一 PNG，圆角 3、contain，中号约 11pt）＋「中国联通」（半粗 11px），行内零留白、距第一张卡约 2pt（整行十几 pt 高），可被安全的自定义标题覆盖，<code>SHOW_BRAND=false/off/0</code> 时整行（图标＋文字）隐藏。每张卡是一个圆角大胶囊块（卡槽色低 alpha 淡染 + 1px 略亮描边，卡间留白 7pt），内部话费/语音/流量胶囊保持各自卡槽色淡染；卡片行前的卡槽色小方块保持不变。卡槽配色蓝/紫/青；无限流量卡流量条渐变淡出并显示 ∞ 与「不限量」；有参考总量才画真实比例；「卡片顺序」可调整三卡显示次序。<b>预览中图标以本地文件显示，正式 DSL 使用同一文件的远程 raw URL。</b></p>
 <div class="wrap">
  <div class="box"><p class="cap"><b>① 标题栏 + 无限流量卡：什么都不用填</b><br>顶部标题栏（图标＋中国联通）；没有套餐总量 → 流量条向右渐变淡出、末端 ∞、标记「不限量」，绝不出现百分比；每卡一个淡染胶囊块</p><div class="holder" id="a"></div></div>
  <div class="box"><p class="cap"><b>② 给有配额的卡填一次参考总量</b><br>卡2 填 500GB → 真实比例填充（剩余 120GB → 已用 76%），其余卡仍为无限淡出</p><div class="holder" id="b"></div></div>
  <div class="box"><p class="cap"><b>③ 可调卡片顺序：CARD_ORDER=3,1,2</b><br>只改汇总显示顺序，卡槽与存储键不变；单卡组件不受影响</p><div class="holder" id="c"></div></div>
+ <div class="box" style="width:360px"><p class="cap"><b>④ 紧凑标题栏对比（本次瘦身）</b><br>上＝旧标题栏示意（图标 15／文字 13／距首卡 9、卡间 9），下＝本次（图标 11／文字 11／距首卡 2、卡间 7）。图为真实 JS 生成 DSL 渲染，合成数据</p><div class="holder" id="before"></div><div style="height:12px"></div><div class="holder" id="after"></div></div>
 </div>
 <script type="module">
 import run from '../UnicomThreeCards.js';
@@ -22,4 +23,17 @@ async function draw(id,env){const m=fixture();const t=await run({env:{VIEW:'all'
 await draw('a',{CARD1_NAME:'双不限',CARD2_NAME:'私人',CARD3_NAME:'备用'});
 await draw('b',{CARD1_NAME:'双不限',CARD2_NAME:'私人',CARD3_NAME:'备用',CARD2_TOTAL:'500GB'});
 await draw('c',{CARD1_NAME:'双不限',CARD2_NAME:'私人',CARD3_NAME:'备用',CARD_ORDER:'3,1,2'});
+async function drawCompare(){
+ const m=fixture();
+ const env={VIEW:'all',CARD1_NAME:'双不限',CARD2_NAME:'私人',CARD3_NAME:'备用'};
+ const t=await run({env,widgetFamily:'systemMedium',storage:{getJSON:k=>m.get(k),setJSON:(k,v)=>m.set(k,v)},http:{get:()=>{throw Error('fixture cache only')}}});
+ // A/B illustration only: restore the previous, heavier title bar on a copy so the slimming is visible.
+ const before=JSON.parse(JSON.stringify(t));
+ const bar=before.children[0];
+ bar.children[0].width=15;bar.children[0].height=15;bar.children[1].font.size=13;bar.gap=9;before.gap=9;
+ if(before.children[1]&&typeof before.children[1].gap==='number')before.children[1].gap=9;
+ document.getElementById('before').replaceChildren(render(before));
+ document.getElementById('after').replaceChildren(render(t));
+}
+await drawCompare();
 </script>

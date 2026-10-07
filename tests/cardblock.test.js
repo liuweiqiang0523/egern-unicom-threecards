@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import run from '../UnicomThreeCards.js';
-import {mock,capture,phones,cards} from './helpers.js';
+import {mock,capture,phones,cards,cardHolder} from './helpers.js';
 
 const nodes=n=>[n,...(n.children||[]).flatMap(nodes)];
 const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(texts)];
@@ -12,7 +12,8 @@ test('every home summary card is one rounded slot-tinted block with a brighter 1
  for(const family of ['systemSmall','systemMedium','systemLarge','systemExtraLarge']){
   const m=mock();for(const p of phones)await capture(m,p);
   const t=await run({...m.ctx,widgetFamily:family,env:{VIEW:'all'}});
-  assert.equal(t.gap,9,family+' card gap');
+  assert.equal(t.gap,2,family+' title gap');
+  assert.equal(cardHolder(t).gap,7,family+' card gap');
   assert.equal(cards(t).length,3,family);
   cards(t).forEach((card,i)=>{
    assert.equal(card.type,'stack',family);

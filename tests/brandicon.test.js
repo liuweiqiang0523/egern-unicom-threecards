@@ -39,7 +39,28 @@ test('an explicit SHOW_BRAND false/off/0 hides the whole title bar including the
   assert.equal(images(t).length,0,JSON.stringify(v));
   assert.ok(!texts(t).includes('中国联通'),JSON.stringify(v));
   assert.equal(cards(t).length,3,JSON.stringify(v)); // only the three cards remain
+  assert.equal(t.children.length,3,JSON.stringify(v)); // no leftover wrapper when the bar is hidden
+  assert.equal(t.gap,7,JSON.stringify(v)); // cards keep their own spacing without the title bar
  }
+});
+
+test('the medium title bar is slim: small icon/text, no vertical padding and a tight card gap',async()=>{
+ const t=await summary();
+ const bar=t.children[0];
+ assert.equal(bar.type,'stack');assert.equal(bar.direction,'row');
+ // one compact line: icon and title text capped at 11pt on medium
+ assert.ok(bar.children[0].width<=11&&bar.children[0].height<=11,'title icon must be <=11pt');
+ const label=bar.children.find(c=>c.type==='text');
+ assert.ok(label.font.size<=11,'title text must be <=11pt');
+ // zero (at most 1pt) vertical padding keeps the bar from adding its own height
+ assert.ok((bar.padding?.[0]??0)<=1&&(bar.padding?.[2]??0)<=1,'title bar vertical padding must be 0-1');
+ // intrinsic bar height stays within the slim budget (old bar was a 15px icon + 13pt text + 9pt gap)
+ const barH=Math.max(bar.children[0].height||0,label.font.size*1.25)+(bar.padding?.[0]||0)+(bar.padding?.[2]||0);
+ assert.ok(barH<=16,'title bar height '+barH+' exceeds 16pt');
+ // the bar sits 2-3pt above the first card, which keeps its own wider spacing
+ assert.equal(t.gap,2);
+ const holder=t.children[1];assert.equal(holder.type,'stack');assert.equal(holder.gap,7);
+ assert.equal(cards(t).length,3);
 });
 
 test('SHOW_BRAND true/on/1 or unset keeps the title bar',async()=>{
