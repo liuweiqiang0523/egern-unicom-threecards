@@ -10,6 +10,69 @@ https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/U
 
 在 Egern 更新模块及其远程 JS 脚本，再刷新组件即可。不要删除模块、清空存储或重新添加组件。此次外观升级保留已有卡槽、手机号及 Cookie，**无需重新抓取**。旧格式缓存会主动查询升级；网络失败时保留有效期内的旧缓存并标记“旧缓存（查询失败）”，使用中性标题，不猜测已用/剩余。
 
+## 可编辑本地组件安全迁移
+
+**结论：模块组件和本地组件是两种来源。** 当前模块已经正确声明了 `generic` 和三个 `widgets`，不是缺少渲染脚本。官方文档说明模块组件自动出现在“模块小组件”区域；自建组件则先创建 generic 脚本，再关联。结合用户反馈（新增下拉看不到模块脚本、模块组件不可单独删除/排序），应将渲染脚本和组件条目放入**主配置**，不是让 JS 返回新字段或更改模块组件名字。官方未明确承诺所有版本的下拉会枚举模块脚本，也没有公开的脚本注册/小组件新增 URL Scheme；不能宣称修改 JS 就能解除 App 限制。
+
+“本地组件”指**定义属于本机主配置**，不是必须把 JS 下载成本地文件。继续使用同一远程 JS URL，以保留已实机可用的捕获与渲染路径；不更名脚本、不换脚本文件位置、不清空存储。账号槽位不随组件名称或显示顺序改变。
+
+### 唯一路径：先补主配置，再切换仅捕获模块
+
+1. **备份当前配置，保留已工作模块。** 在 Egern 的配置编辑入口打开当前正在使用的主 YAML，只追加下方增量条目。已有 `scriptings:` 或 `widgets:` 时把条目加入对应列表，**不能再次粘贴同名顶层键、不能覆盖已有机场/网络诊断脚本、不能把片段作为完整配置导入**。不需要提供手机号、Cookie、证书或订阅给任何人。若已有同名本地 `unicom-threecards-render`，核对 URL 与 timeout 后复用，不重复添加。
+
+   可复制片段：[UnicomLocalWidgets.fragment.yaml](https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomLocalWidgets.fragment.yaml)。此片段**不是模块**，不要添加到模块列表。只包含下面四个定义：
+
+   ```yaml
+   scriptings:
+     - generic:
+         name: unicom-threecards-render
+         script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomThreeCards.js
+         timeout: 20
+   widgets:
+     - name: 联通本地卡1
+       script_name: unicom-threecards-render
+       env:
+         CARD_SLOT: "1"
+     - name: 联通本地卡2
+       script_name: unicom-threecards-render
+       env:
+         CARD_SLOT: "2"
+     - name: 联通本地卡3
+       script_name: unicom-threecards-render
+       env:
+         CARD_SLOT: "3"
+   ```
+
+2. **保存后验收本地条目，不先移除旧组件。** 工具 → 脚本确认主配置 generic 已出现；分析 → 左上角小组件画廊应出现“联通本地卡1/2/3”，新增组件的脚本下拉应可选择 `unicom-threecards-render`。三张卡分别核对值、卡槽与尾号（尾号按需打开）。原模块上的外观 Env 不应假定会自动传给主配置组件：将已有外观值复制到本地 generic 的 Env 作为三卡默认，或各本地组件 Env 单独设置；**CARD_SLOT 只放各组件 Env**，不放脚本或模块级。这样不改变已选 A 配色，也不会意外恢复不同的别名/透明度。此操作通常不需要重新抓取；若新组件出现空卡，停止迁移，保持旧模块及组件，不清空存储。旧捕获/模块组件共享已实机验证，但新增主配置声明仍须在你的 Egern 版本上通过这一验收。
+
+3. **仅在三个本地组件可用后，替换原模块的 URL**（编辑原有联通模块条目，而不是同时启用两个捕获模块）为：
+
+   ```text
+   https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomCapture.yaml
+   ```
+
+   更新该模块后，旧的模块三组件退出画廊，仅保留本地三组件和同一自动捕获脚本/MITM 域名。保持原来 MITM 证书与开关。再次打开联通 App 切卡查余额，核对本地组件仍正常；在 iOS 桌面长按原组件 → 编辑小组件，把名称切换为对应“联通本地卡N”。旧桌面组件仍指旧名称时可能空白，并不代表卡槽被删除。不要直接删除发布中的 `UnicomThreeCards.yaml` 的 widgets；它继续为未迁移用户默认提供三组件。
+
+### 新增、删除、排序的可验证边界
+
+- 本地新增：画廊 `+` → 自定唯一名称 → 脚本选 `unicom-threecards-render` → Env 填 `CARD_SLOT=1/2/3`。不同组件可复用同一卡槽；新增第四个组件不等于支持第四个账号。
+- 本地删除：在画廊的本地条目操作；如果当前版本没有相应按钮，在主 YAML `widgets` 列表中只删除该条目。不删除脚本、不删 storage；以后重新创建相同 CARD_SLOT 仍引用原账号。
+- 本地排序：优先使用版本提供的编辑/拖动操作；若无入口，在主 YAML `widgets` 列表中调整条目顺序。官方定义其为数组，但**未承诺所有版本的画廊按 YAML 顺序显示**；若 App 自行按名称排序，脚本无权改变该行为。iOS 桌面位置独立由主屏幕拖动控制，不受 YAML 顺序控制。不可声称已经修复 App 的拖动功能。
+- 回滚：把原联通模块 URL 改回本文开头的 `UnicomThreeCards.yaml` 并更新；桌面选回“中国联通卡N”。不要清空凭据。本地条目可暂留排查，或只移除所新增的三组件/渲染脚本条目。
+
+### 官方依据与验证范围
+
+- [自建脚本、画廊与主配置 widgets](https://egernapp.com/zh-CN/docs/configuration/widgets/)：工具 → 脚本 → `+`，类型 generic；官方 UI 示例用 Local 文件，但主配置示例明确支持远程 `script_url`。本方案走主配置远程定义，不猜 UI 的远程输入字段，也不把示例 Local 路径套用到已工作共享存储。
+- [脚本字段](https://egernapp.com/docs/configuration/scriptings/)：generic 的 `name`、`script_url`、`timeout`。
+- [环境变量优先级](https://egernapp.com/docs/configuration/env/)：Module > Widget > Script；本地脚本/组件没有原模块的外观 Env 自动继承保证。
+- [URL Scheme](https://egernapp.com/zh-CN/docs/url-scheme/)：公开入口有配置/模块导入，没有脚本或组件注册入口。未发布伪造的一键安装链接。
+
+本仓库测试覆盖仅捕获模块与原捕获定义一致、远程 JS 相同、槽位正确、反向渲染不重映射存储、原三组件仍保留；完整 YAML 可解析。**这些不等于已在 iPhone 完成主配置迁移或验证画廊拖动**，完成迁移以第2/3步实机验收为准。
+
+### 机场订阅排版参考
+
+机场示例值得借鉴的是紧凑标题、次级小字和同一行两端对齐的信息层级；本次只研究，不更改已选 A 三色胶囊、资源标题或数值。机场流量进度条需要可信的总量/已用/剩余字段，当前联通契约没有已验证套餐总量，不能拿 `flowPersent` 字段名当百分比，不能生成虚构进度或通过未知总量做减法。
+
 ## 首次安装
 
 1. 导入并启用模块，开启所需 MITM，安装并信任证书。

@@ -20,4 +20,4 @@ jobs:
       - run: npm test
       - name: Validate module and workflow YAML
         run: |
-          ruby -e 'require "yaml"; ARGV.each { |p| YAML.load_file(p); puts "YAML_OK #{p}" }' UnicomThreeCards.yaml .github/workflows/check.yml
+          ruby -e 'require "yaml"; ARGV.each { |p| YAML.load_file(p); puts "YAML_OK #{p}" }' UnicomThreeCards.yaml UnicomCapture.yaml UnicomLocalWidgets.fragment.yaml .github/workflows/check.yml

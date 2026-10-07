@@ -1,0 +1,17 @@
+# 可编辑本地组件迁移完成后使用；不提供 module widgets。
+# 先保留原模块，确认三个本地组件正常，再切换模块 URL 到此文件。
+name: 中国联通三卡仅捕获
+description: 只捕获联通三卡凭据；组件由主配置管理，可独立新增删除及调整顺序
+icon: simcard.fill
+manual: https://github.com/liuweiqiang0523/egern-unicom-threecards/blob/main/INSTALL.md#可编辑本地组件安全迁移
+scriptings:
+  - http_request:
+      name: unicom-threecards-capture
+      match: '^https://m\.client\.10010\.com/mobileserviceimportant/home/queryUserInfoSeven(?:\?|$)'
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomThreeCards.js
+      timeout: 5
+      body_required: false
+mitm:
+  hostnames:
+    includes:
+      - m.client.10010.com

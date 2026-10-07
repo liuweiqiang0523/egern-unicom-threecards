@@ -1,0 +1,21 @@
+# 主配置增量片段，不是模块，也不是完整 VPN 配置！
+# 将列表条目追加到现有 scriptings/widgets；不能覆盖原配置或重复顶层键。
+# 已有同名本地 generic 时核对 URL/timeout 后复用，不重复添加。
+scriptings:
+  - generic:
+      name: unicom-threecards-render
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomThreeCards.js
+      timeout: 20
+widgets:
+  - name: 联通本地卡1
+    script_name: unicom-threecards-render
+    env:
+      CARD_SLOT: "1"
+  - name: 联通本地卡2
+    script_name: unicom-threecards-render
+    env:
+      CARD_SLOT: "2"
+  - name: 联通本地卡3
+    script_name: unicom-threecards-render
+    env:
+      CARD_SLOT: "3"
