@@ -39,7 +39,7 @@ test('expired cache and authentication failure are isolated from healthy card',a
  for(const p of phones){const r=m.ctx.storage.getJSON(key(p));r.updatedAt=Date.now()-25*3600000;m.ctx.storage.setJSON(key(p),r);}
  const normal=m.ctx.http.get;m.ctx.http.get=async(u,o)=>{const p=new URL(u).searchParams.get('desmobiel');if(p===phones[0])throw new Error('sensitive='+o.headers.Cookie);if(p===phones[1])return {status:403};return normal(u,o);};
  const w=await renderAll(m);assert.match(JSON.stringify(w[0]),/缓存已过期/);assert.ok(!JSON.stringify(w[0]).includes('12.34'));
- assert.match(JSON.stringify(w[1]),/登录失效/);assert.match(JSON.stringify(w[2]),/已更新/);assert.ok(!JSON.stringify(w).includes('sensitive'));assert.equal(m.ctx.storage.getJSON(key(phones[1])).cookie,undefined);
+ assert.match(JSON.stringify(w[1]),/登录失效/);assert.match(renderedText(w[2]),/12.34元/);assert.ok(!renderedText(w[2]).includes('已更新'));assert.ok(m.ctx.storage.getJSON(key(phones[2])).updatedAt>Date.now()-60000);assert.ok(!JSON.stringify(w).includes('sensitive'));assert.equal(m.ctx.storage.getJSON(key(phones[1])).cookie,undefined);
 });
 test('recent cache is labelled on transport failure and secrets never enter output',async()=>{
  const m=mock();await capture(m);await run(m.ctx);const r=m.ctx.storage.getJSON(key(phones[0]));r.updatedAt=Date.now()-2*3600000;m.ctx.storage.setJSON(key(phones[0]),r);
@@ -118,7 +118,7 @@ test('medium and large widgets use horizontal rounded capsules and supported DSL
  for(const family of ['systemMedium','systemLarge','systemExtraLarge','accessoryInline','accessoryCircular','accessoryRectangular']){
   const m=mock();await capture(m);m.ctx.widgetFamily=family;const w=await run(m.ctx);
   assert.equal(w.type,'widget');assert.ok(nodes(w).every(n=>allowed.has(n.type)));
-  if(family.startsWith('system')){assert.equal(w.children[1].direction,'row');assert.equal(w.children[1].children.length,3);assert.equal(nodes(w).filter(n=>n.borderRadius===14).length,3);assert.ok(nodes(w).some(n=>n.src==='sf-symbol:simcard.fill'));assert.match(renderedText(w),/\d{2}:\d{2}/);}
+  if(family.startsWith('system')){assert.equal(w.children[1].direction,'row');assert.equal(w.children[1].children.length,3);assert.equal(nodes(w).filter(n=>n.borderRadius===14).length,3);assert.ok(nodes(w).some(n=>n.width===6&&n.height===6&&n.borderRadius===3));assert.match(renderedText(w),/\d{2}:\d{2}/);}
   else assert.ok(nodes(w).some(n=>n.text==='流量'||n.text?.includes('流量')),'lock screen retains semantic label');
  }
 });

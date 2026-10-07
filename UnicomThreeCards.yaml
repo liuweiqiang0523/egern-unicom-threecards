@@ -16,6 +16,29 @@ env_schema:
     name: 组件标题
     description: 自定义安全短标题，最多24字符；留空恢复中国联通。模块设置优先于单个组件。
     default_value: 中国联通
+  CARD1_NAME:
+    name: 卡1别名
+    description: 留空显示卡1；安全短文本，截取前12字符；不接受完整手机号。
+    default_value: ""
+  CARD2_NAME:
+    name: 卡2别名
+    description: 留空显示卡2；安全短文本，截取前12字符；不接受完整手机号。
+    default_value: ""
+  CARD3_NAME:
+    name: 卡3别名
+    description: 留空显示卡3；安全短文本，截取前12字符；不接受完整手机号。
+    default_value: ""
+  SHOW_PHONE_SUFFIX:
+    name: 显示号码尾四位
+    description: 默认关闭；开启仅显示脱敏尾四位，不显示完整手机号。锁屏圆形不显示。
+    default_value: "false"
+    options:
+      - "true"
+      - "false"
+  LOW_BALANCE_THRESHOLD:
+    name: 低话费提醒门槛
+    description: 默认10元，0关闭；仅话费单位为元且严格低于门槛时强调数字及胶囊，不应用语音或流量。
+    default_value: "10"
 scriptings:
   - generic:
       name: unicom-threecards-render

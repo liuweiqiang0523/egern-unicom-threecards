@@ -10,10 +10,12 @@ const families=['systemSmall','systemMedium','systemLarge','systemExtraLarge','a
 const nodes=w=>[w,...(w.children||[]).flatMap(nodes)];
 const content=w=>nodes(w).filter(n=>n.type==='text').map(n=>n.text).join('');
 test('module exposes real native settings, no slot override or imaginary API options',()=>{
- assert.deepEqual(Object.keys(moduleConfig.env_schema).sort(),['TRANSLUCENT','WIDGET_TITLE']);
+ assert.deepEqual(Object.keys(moduleConfig.env_schema).sort(),['CARD1_NAME','CARD2_NAME','CARD3_NAME','LOW_BALANCE_THRESHOLD','SHOW_PHONE_SUFFIX','TRANSLUCENT','WIDGET_TITLE']);
  assert.deepEqual(moduleConfig.env_schema.TRANSLUCENT.options,['true','false']);
  assert.equal(moduleConfig.env_schema.TRANSLUCENT.default_value,'false');
  assert.equal(moduleConfig.env_schema.WIDGET_TITLE.default_value,'中国联通');
+ assert.deepEqual(moduleConfig.env_schema.SHOW_PHONE_SUFFIX.options,['true','false']);assert.equal(moduleConfig.env_schema.SHOW_PHONE_SUFFIX.default_value,'false');assert.equal(moduleConfig.env_schema.LOW_BALANCE_THRESHOLD.default_value,'10');
+ for(const key of ['CARD1_NAME','CARD2_NAME','CARD3_NAME'])assert.equal(moduleConfig.env_schema[key].default_value,'');
  assert.ok(!moduleConfig.env?.CARD_SLOT);
  for(const s of moduleConfig.scriptings)assert.ok(!Object.values(s)[0].env?.CARD_SLOT);
  assert.deepEqual(moduleConfig.widgets.map(w=>w.env.CARD_SLOT),['1','2','3']);

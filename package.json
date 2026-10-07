@@ -1,1 +1,1 @@
-{"private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","check":"node --check UnicomThreeCards.js && node --check tests/widget.test.js && node --check tests/settings.test.js && node --check tests/helpers.js"}}
+{"private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","check":"node --check UnicomThreeCards.js && node --check tests/widget.test.js && node --check tests/settings.test.js && node --check tests/helpers.js && node --check tests/bill.test.js"}}

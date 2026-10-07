@@ -91,8 +91,22 @@ async function load(ctx,slot) {
   return {status:record.data?'缓存已过期，请重新查询':'查询失败，请重试'};
  }
 }
+function enabled(value) {return [true,'true','on','1'].includes(value);}
+function cardName(value,selection) {
+ if(typeof value!=='string') return '卡'+selection;
+ const clean=value.trim();
+ // Validate before truncating: a long private token must not become a safe alias.
+ if(!clean||/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/.test(clean)||/(?:1[3-9]\d{9}|cookie|https?:\/\/)/i.test(clean)) return '卡'+selection;
+ return Array.from(clean).slice(0,12).join('');
+}
+// Only a validated suffix leaves the account-loading boundary, never the phone.
+async function displayResult(ctx,selection) {
+ const result=await load(ctx,Number(selection));
+ const phone=safeJSON(ctx,slotKey(selection))?.phone;
+ return {...result,suffix:enabled(ctx.env?.SHOW_PHONE_SUFFIX)&&typeof phone==='string'&&PHONE.test(phone)?phone.slice(-4):''};
+}
 // Egern's documented JSON DSL; alpha colors do not request an iOS blur material.
-const COLORS={bg:{light:'#FFFFFF',dark:'#2C2C2E'},capsule:{light:'#F5F5F7',dark:'#3A3A3C'},border:{light:'#E5E5EA',dark:'#48484A'},value:{light:'#1C1C1E',dark:'#FFFFFF'},muted:{light:'#777777',dark:'#AAAAAA'},accent:{light:'#E60012',dark:'#FF375F'}};
+const COLORS={bg:{light:'#FFFFFF',dark:'#2C2C2E'},value:{light:'#1C1C1E',dark:'#FFFFFF'},muted:{light:'#62626A',dark:'#C4C4CC'},accent:{light:'#E60012',dark:'#FF375F'}};
 function text(value,size=11,color=COLORS.value,weight='regular') {
  return {type:'text',text:value,font:{size,weight},textColor:color,maxLines:1,minScale:0.55};
 }
@@ -101,37 +115,48 @@ function row(children,gap=6) {return {type:'stack',direction:'row',alignItems:'c
 function widget(children,translucent=false) {
  return {type:'widget',backgroundColor:translucent?{light:'#FFFFFFB3',dark:'#2C2C2EB3'}:COLORS.bg,padding:[10,12,10,12],gap:8,refreshAfter:new Date(Date.now()+FRESH).toISOString(),children};
 }
-function capsule(d,center=false) {
- return {type:'stack',direction:'column',alignItems:'center',...(center?{}:{flex:1}),padding:[7,center?20:8,7,center?20:8],gap:3,backgroundColor:COLORS.capsule,borderRadius:14,borderWidth:1,borderColor:COLORS.border,children:[text(d.title,10,COLORS.muted,'light'),row([text(d.value,22,COLORS.value,'semibold'),text(d.unit,10,COLORS.muted)],3)]};
+const CAPSULE_COLORS=[{light:'#FFF1E5',dark:'#FFB97626'},{light:'#F2EDFF',dark:'#BEA3FF26'},{light:'#EAF4FF',dark:'#86BFFF26'}];
+const SLOT_COLORS=[{light:'#CA7547',dark:'#F6B485'},{light:'#8062AE',dark:'#C2ACF1'},{light:'#4584B6',dark:'#92C5ED'}];
+const WARNING={background:{light:'#FDE9E7',dark:'#FF786426'},value:{light:'#B83A32',dark:'#FFB4AA'}};
+function balanceThreshold(value) {
+ if(!['string','number'].includes(typeof value)||!/^\d+(?:\.\d+)?$/.test(String(value).trim())) return 10;
+ const n=Number(value);return Number.isFinite(n)?n:10;
+}
+function lowBalance(d,threshold) {return threshold>0&&d.unit==='元'&&Number(d.value)<threshold;}
+function capsule(d,index,center=false,warning=false) {
+ return {type:'stack',direction:'column',alignItems:'center',...(center?{}:{flex:1}),padding:[7,center?20:8,7,center?20:8],gap:3,backgroundColor:warning?WARNING.background:CAPSULE_COLORS[index],borderRadius:14,children:[text(d.title,10,COLORS.muted,'light'),row([text(d.value,22,warning?WARNING.value:COLORS.value,'semibold'),text(d.unit,10,COLORS.muted)],3)]};
 }
 function footer(status) {
- return row([spacer(),{type:'stack',width:42,height:3,borderRadius:2,backgroundColor:COLORS.border},spacer(),text(status,9,COLORS.muted)]);
+ return row([spacer(),text(status,9,COLORS.muted)]);
 }
-function lockWidget(result,selection,family,translucent,title) {
+function lockWidget(result,identity,family,translucent,title,threshold) {
  // Lock-screen containers must not inherit spacious home-screen padding.
  const lock=children=>({...widget(children,translucent),padding:family==='accessoryInline'?0:4,gap:2});
  const d=result.data;
- if(!d) return lock([{...text(title+' · 卡'+selection+' · '+result.status,11,COLORS.accent),maxLines:family==='accessoryInline'?1:2}]);
+ if(!d) return lock([{...text(title+' · '+identity+' · '+result.status,11,COLORS.accent),maxLines:family==='accessoryInline'?1:2}]);
  const label=v=>v.title+' '+v.value+v.unit;
+ const feeColor=lowBalance(d[0],threshold)?WARNING.value:COLORS.value;
  const status=result.status==='已更新'?'': ' · '+result.status;
- if(family==='accessoryInline') return lock([text(title+' · 卡'+selection+' '+label(d[0])+' · '+label(d[2])+status,11)]);
+ if(family==='accessoryInline') return lock([row([text(title+' · '+identity,11),text(label(d[0]),11,feeColor),text(' · '+label(d[2])+status,11)],2)]);
  // Circular: only flow fits; its exact API label takes priority over a heading.
  if(family==='accessoryCircular') return lock([text(d[2].title,9),{...text(d[2].value,20,COLORS.value,'semibold'),textAlign:'center'},text(d[2].unit+status,9)]);
- return lock([text(title+' · 卡'+selection+' '+label(d[0]),12),text(label(d[1]),10),text(label(d[2])+status,10)]);
+ return lock([row([{...text(title+' · '+identity,12),flex:1},text(label(d[0]),12,feeColor)],2),text(label(d[1]),10),text(label(d[2])+status,10)]);
 }
 export default async function(ctx) {
  if(ctx.request) {capture(ctx);return;}
  const selection=String(ctx.env?.CARD_SLOT||'1');
  if(!['1','2','3'].includes(selection)) return widget([text('CARD_SLOT 只能为 1 / 2 / 3')]);
- const result=await load(ctx,Number(selection));
+ const result=await displayResult(ctx,selection);
+ const identity=cardName(ctx.env?.['CARD'+selection+'_NAME'],selection)+(result.suffix?' ··'+result.suffix:'');
  const family=['systemSmall','systemMedium','systemLarge','systemExtraLarge','accessoryInline','accessoryCircular','accessoryRectangular'].includes(ctx.widgetFamily)?ctx.widgetFamily:'systemSmall';
- const translucent=[true,'true','on','1'].includes(ctx.env?.TRANSLUCENT);
+ const translucent=enabled(ctx.env?.TRANSLUCENT);
  const title=safeTitle(ctx.env?.WIDGET_TITLE,'中国联通');
- if(family.startsWith('accessory')) return lockWidget(result,selection,family,translucent,title);
+ if(family.startsWith('accessory')) return lockWidget(result,identity,family,translucent,title,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD));
  const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
- const heading=row([{type:'image',src:'sf-symbol:simcard.fill',color:COLORS.accent,width:17,height:17},{...text(title+' · 卡'+selection,12,COLORS.value,'semibold'),flex:1},spacer(),text(time,10,COLORS.muted)]);
+ const heading=row([{type:'stack',width:6,height:6,borderRadius:3,backgroundColor:SLOT_COLORS[Number(selection)-1],children:[]},{...text(title+' · '+identity,12,COLORS.value,'semibold'),flex:1},spacer(),text(time,10,COLORS.muted)]);
  if(!result.data) return widget([heading,spacer(),{...text(result.status,13,COLORS.accent,'medium'),maxLines:2},text('打开联通 App 切换号码并查询余额',10,COLORS.muted),spacer()],translucent);
  const d=result.data;
- const content=family==='systemSmall'?[row([spacer(),capsule(d[0],true),spacer()],0),row(d.slice(1).map(v=>capsule(v)),7)]:[row(d.map(v=>capsule(v)),8)];
- return widget([heading,...content,footer(result.status)],translucent);
+ const warning=lowBalance(d[0],balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD));
+ const content=family==='systemSmall'?[row([spacer(),capsule(d[0],0,true,warning),spacer()],0),row(d.slice(1).map((v,i)=>capsule(v,i+1)),7)]:[row(d.map((v,i)=>capsule(v,i,false,i===0&&warning)),8)];
+ return widget([heading,...content,...(result.status==='已更新'?[]:[footer(result.status)])],translucent);
 }
