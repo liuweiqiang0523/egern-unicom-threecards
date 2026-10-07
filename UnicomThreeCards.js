@@ -133,7 +133,7 @@ const SUMMARY_INK={light:'#202329',dark:'#ECEEF2'};
 const SUMMARY_MUTED={light:'#626975',dark:'#989EA9'};
 const SUMMARY_TRACK={light:'#D9DDE3',dark:'#303238'};
 function summaryFeeColor(d,threshold,slot) {
- if(!lowBalance(d,threshold)) return SUMMARY_COLORS[slot];
+ if(!lowBalance(d,threshold)) return SUMMARY_INK;
  return Number(d.value)<threshold/2?{light:'#B83A47',dark:'#FF5C68'}:{light:'#A75E32',dark:'#D99A70'};
 }
 const WARNING={background:{light:'#FDE9E7',dark:'#FF786426'},value:{light:'#B83A32',dark:'#FFB4AA'}};
@@ -210,7 +210,7 @@ function capsule(d,index,center=false,warning=false) {
  return {type:'stack',direction:'column',alignItems:'center',...(center?{}:{flex:1}),padding:[7,center?20:8,7,center?20:8],gap:3,backgroundColor:warning?WARNING.background:CAPSULE_COLORS[index],borderRadius:14,children:[text(d.title,10,{light:'#51515A',dark:'#D8D8DF'},'medium'),row([text(d.value,22,warning?WARNING.value:COLORS.value,'semibold'),text(d.unit,10,COLORS.muted)],3)]};
 }
 function chip(label,s) {return {type:'stack',direction:'row',alignItems:'center',padding:[1,6,1,6],borderRadius:6,backgroundColor:{light:'#E6E8EC',dark:'#292B30'},children:[text(label,s.tag,{light:'#626975',dark:'#C2C6CE'},'medium')]};}
-// Summary resources use neutral surfaces; hue is confined to status marks and key values.
+// Summary resources use neutral surfaces and digits; hue is confined to status marks and warnings.
 function miniCapsule(d,slot,s,valueColor=SUMMARY_INK) {
  return {type:'stack',direction:'row',alignItems:'center',flex:1,gap:3,padding:s.cpad,backgroundColor:slotTint(slot),borderRadius:10,children:[text(d.title,s.label,SUMMARY_MUTED,'medium'),text(d.value,s.value,valueColor,'semibold'),text(d.unit,s.unit,SUMMARY_MUTED)]};
 }
@@ -257,12 +257,12 @@ function compactCard(ctx,result,selection,family,metric) {
  // Reference rows are ~90pt apart at a normalized 402pt screenshot width. Fixed row heights
  // fence off recursive flex inflation; excess iOS frame height belongs below the whole panel.
  const cardHeight=family==='systemExtraLarge'?86:82;
- const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:s.gap,padding:family==='systemMedium'?[0,7,0,7]:roomy?[6,8,6,8]:CARD_PAD,...(roomy?{height:cardHeight}:{flex:1}),backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[{type:'stack',direction:'column',width:2,height:small?26:family==='systemMedium'?30:60,borderRadius:1,backgroundColor:SUMMARY_COLORS[slot],children:[]},{type:'stack',direction:'column',gap:family==='systemMedium'?1:roomy?0:s.gap,flex:1,children}]});
+ const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:s.gap,padding:family==='systemMedium'?[0,7,0,7]:roomy?[6,8,6,8]:CARD_PAD,...(roomy?{height:cardHeight}:{flex:1}),backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[{type:'stack',direction:'column',width:2,height:small?26:family==='systemMedium'?30:60,borderRadius:1,backgroundGradient:{type:'linear',colors:[{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'},SUMMARY_COLORS[slot],{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'}],stops:[0,0.5,1],startPoint:{x:0.5,y:0},endPoint:{x:0.5,y:1}},children:[]},{type:'stack',direction:'column',gap:family==='systemMedium'?1:roomy?0:s.gap,flex:1,children}]});
  if(!result.data) return lock?{type:'stack',direction:'column',gap:2,children:[idRow,text(result.status,9,COLORS.accent)]}:block([idRow,text(result.status,small?9:11,COLORS.accent)]);
  const [fee,voice,flow]=result.data;
  if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...compactIdentity(alias,'',family,s),text(flow.value,s.value,COLORS.value,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED)],3)]};
  const feeColor=summaryFeeColor(fee,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD),slot);
- const valueColor=SUMMARY_COLORS[slot];
+ const valueColor=SUMMARY_INK;
  const column=(d,color,badge=false,index=0)=>({type:'stack',direction:'column',flex:roomy&&index===2?1.25:1,gap:s.fgap,children:[...(badge&&family==='systemMedium'?[row([text(d.title,s.label,SUMMARY_MUTED,'medium'),chip('不限量',s)],2)]:[roomy?row([{type:'image',src:'sf-symbol:'+['yensign.circle','phone.fill','cloud.fill'][index],width:10,height:10,color:SUMMARY_COLORS[slot]},text(d.title,s.label,SUMMARY_MUTED,'medium')],3):text(d.title,s.label,SUMMARY_MUTED,'medium')]),row([text(d.value,roomy&&index===2?s.value-1:s.value,color,'semibold'),text(d.unit,s.unit,SUMMARY_MUTED),...(badge&&roomy?[{...chip('不限量',s),padding:[1,2,1,2]}]:[])],2)]});
  // Small widgets keep the three identities and exact flow values, without cramming nine metrics.
  const metrics=small?row([text(flow.title,s.title,SUMMARY_MUTED),spacer(),text(flow.value,s.value,valueColor,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED)],2):row([column(fee,feeColor),...(roomy?[{type:'stack',width:1,height:30,backgroundColor:slotCardBorder(slot),children:[]}]:[]),column(voice,SUMMARY_INK,false,1),...(roomy?[{type:'stack',width:1,height:30,backgroundColor:slotCardBorder(slot),children:[]}]:[]),column(flow,valueColor,metric.unlimited,2)],5);

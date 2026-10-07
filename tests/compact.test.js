@@ -68,7 +68,7 @@ test('medium summary is a three-column metric row inside one neutral rounded car
   assert.equal(card.backgroundColor.dark,'#1D1F23');
   assert.equal(card.borderColor.light,'#DDE1E7');
   const [rail,content]=card.children;
-  assert.equal(rail.width,2);assert.equal(rail.backgroundColor.dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
+  assert.equal(rail.width,2);assert.equal(rail.backgroundGradient.colors[1].dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
   const [idRow,metrics,space,bottom]=content.children;
   assert.equal(idRow.children[0].type,'stack');assert.ok(idRow.children[0].width>0);
   assert.equal(idRow.children.at(-1).type,'text');assert.match(idRow.children.at(-1).text,/^(\d{2}:\d{2}|--:--)$/);

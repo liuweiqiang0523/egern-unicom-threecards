@@ -14,6 +14,8 @@ https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/U
 
 ## 三卡合一紧凑版（新入口）
 
+**本次窄幅精修**：保留已认可的三列结构、卡高、字体、品牌图、徽标和原成功时间。正常话费／语音／流量数字统一使用近白 `#ECEEF2`（浅色 `#202329`），单位统一灰色 `#989EA9`（浅色 `#626975`）；低话费仍按原门槛显示珊瑚红／柔和暖色。左轨保持原2pt宽和原高度，圆头＋上下低透明度、中间实色的纵向三段渐变，不加阴影或发光。数据、缓存、抓取、流量条与单卡路径均不变。
+
 直接模块 URL：
 https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomThreeCardsCompact.yaml
 

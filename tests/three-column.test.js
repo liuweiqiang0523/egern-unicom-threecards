@@ -18,7 +18,7 @@ for(const family of ['systemMedium','systemLarge','systemExtraLarge']) test('thr
  cards(t).forEach((card,i)=>{
   const [rail,content]=card.children;
   assert.equal(card.direction,'row');assert.equal(rail.width,2);assert.equal(rail.children.length,0);
-  assert.equal(rail.backgroundColor.dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
+  assert.equal(rail.backgroundGradient.colors[1].dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
   const roomy=family!=='systemMedium';
   const header=content.children[0],metrics=content.children[roomy?2:1],bottom=content.children.at(-1);
   assert.equal(hasFlex(header),false,'identity must not absorb remaining card height');

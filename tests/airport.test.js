@@ -113,16 +113,16 @@ test('an invalid or missing total never fakes a ratio or a 0% style',async()=>{
   assert.ok(bar.children[0].flex>0);
  }
 });
-test('flow values use their slot accent without changing remaining/used labels',async()=>{
+test('flow values use neutral ink without changing remaining/used labels',async()=>{
  const m=await setup(remaining);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
  const big=nodes(t).find(n=>n.type==='text'&&n.text==='158.17');
- assert.equal(big.textColor.dark,'#B66CFF');
+ assert.equal(big.textColor.dark,'#ECEEF2');
  assert.ok(texts(t).includes('剩余通用流量'));
  const m2=await setup(used);
  const t2=await run({...m2.ctx,env:{VIEW:'all'}});
  const big2=nodes(t2).find(n=>n.type==='text'&&n.text==='407.44');
- assert.equal(big2.textColor.dark,'#B66CFF');
+ assert.equal(big2.textColor.dark,'#ECEEF2');
  assert.ok(texts(t2).includes('已用通用流量'));
 });
 test('each card shows its flow value exactly once',async()=>{
@@ -131,13 +131,13 @@ test('each card shows its flow value exactly once',async()=>{
  assert.equal(texts(t).filter(x=>x==='407.44').length,3);
  for(const card of cards(t))assert.equal(texts(card).filter(x=>x==='407.44').length,1);
 });
-test('backgroundGradient is a documented linear DSL property, only used for the flow bar',async()=>{
+test('backgroundGradient uses documented linear stops for rails and flow bars',async()=>{
  const m=await setup(used);
  const t=await run({...m.ctx,env:{VIEW:'all',CARD1_TOTAL:'1000GB'}});
  for(const n of nodes(t))for(const attr of Object.keys(n))assert.ok(allowed[n.type].includes(attr),'unsupported '+n.type+'.'+attr);
  for(const n of nodes(t))if(n.backgroundGradient){
   assert.equal(n.backgroundGradient.type,'linear');
-  assert.equal(n.backgroundGradient.colors.length,2);
+  assert.equal(n.backgroundGradient.colors.length,n.width===2?3:2);
   assert.ok(n.backgroundGradient.startPoint&&n.backgroundGradient.endPoint);
  }
 });
@@ -149,7 +149,7 @@ test('low fee is still emphasised in the summary capsules and normal fee is not'
  const m2=mock();for(const p of phones)await capture(m2,p);
  m2.ctx.http.get=async u=>{m2.calls.push({u,o:{}});return {status:200,json:async()=>({code:'Y',feeResource:{feePersent:'89.30',newUnit:'元'},voiceResource:{voicePersent:'56',newUnit:'分钟'},flowResource:used})};};
  const t2=await run({...m2.ctx,env:{VIEW:'all'}});
- assert.equal(nodes(t2).find(n=>n.type==='text'&&n.text==='89.30').textColor.light,'#8843C2');
+ assert.equal(nodes(t2).find(n=>n.type==='text'&&n.text==='89.30').textColor.light,'#202329');
 });
 test('summary layout stays within documented DSL and leaks nothing on every home size',async()=>{
  for(const family of ['systemSmall','systemMedium','systemLarge','systemExtraLarge']){

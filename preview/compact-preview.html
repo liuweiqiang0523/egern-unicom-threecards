@@ -1,7 +1,7 @@
 <!doctype html><meta charset="utf-8"><title>三卡汇总 设计预览</title>
 <style>body{font:13px system-ui;background:#0e0f13;color:#eee;padding:26px;margin:0}.wrap{display:flex;gap:26px;flex-wrap:wrap}.box{width:338px}.cap{color:#9aa0ad;margin:0 0 8px}.cap b{color:#fff}.cap code{color:#c7ccd6}.holder{border-radius:20px;overflow:hidden}.note{color:#7b8090;margin-top:18px;max-width:1140px}code{color:#c7ccd6}</style>
 <h2 style="margin:0 0 6px">三卡合一 · 三列数据卡（设计预览）</h2>
-<p class="note"><b>黑灰科技风 · 设计预览，非实机截图。</b>合成测试数据。直接执行正式 JS；标题＋三张中性圆角卡；每卡话费／语音／流量横向三列，标签在上、数字在下，底部保留原流量条。模块 #17181B、卡片 #1D1F23、边框 #292B30；紫/蓝/青仅用于标记、数值和4pt流量条。低余额数字珊瑚红/柔和暖色，不染整块背景。无发光、无伪磨砂；固定尺寸模拟 Egern flex，浏览器与实机字体不同。</p>
+<p class="note"><b>黑灰科技风 · 设计预览，非实机截图。</b>合成测试数据。直接执行正式 JS；标题＋三张中性圆角卡；每卡话费／语音／流量横向三列，标签在上、数字在下，底部保留原流量条。模块 #17181B、卡片 #1D1F23、边框 #292B30；正常数字统一近白、单位统一灰色；紫/蓝/青仅用于图标、标记、柔和竖轨和4pt流量条。低余额数字珊瑚红/柔和暖色，不染整块背景。无发光、无伪磨砂；固定尺寸模拟 Egern flex，浏览器与实机字体不同。</p>
 <div class="wrap">
  <div class="box"><p class="cap"><b>① 标题栏 + 无限流量卡：什么都不用填</b><br>顶部瘦身标题栏（图标＋中国联通，<b>无 flex 所以不会被撑高</b>）；没有套餐总量 → 流量条向右渐变淡出、末端 ∞、标记「不限量」，绝不出现百分比</p><div class="holder" id="a"></div></div>
  <div class="box"><p class="cap"><b>② 给有配额的卡填一次参考总量</b><br>卡2 填 500GB → 按接口已用值／总量真实填充；未设置的卡保留原条语义</p><div class="holder" id="b"></div></div>
@@ -27,7 +27,7 @@ function render(n,vertical){
   e.style.display='flex';e.style.flexDirection=col?'column':'row';e.style.alignItems=n.alignItems||'stretch';
   if(n.gap)e.style.gap=n.gap+'px';
   if(n.padding!==undefined)e.style.padding=Array.isArray(n.padding)?n.padding.map(v=>v+'px').join(' '):n.padding+'px';
-  if(n.backgroundGradient){const g=n.backgroundGradient;e.style.background='linear-gradient(90deg,'+color(g.colors[0])+','+color(g.colors[1])+')';}else if(n.backgroundColor)e.style.background=color(n.backgroundColor);
+  if(n.backgroundGradient){const g=n.backgroundGradient;e.style.background='linear-gradient('+((Math.atan2((g.endPoint?.x??1)-(g.startPoint?.x??0),-((g.endPoint?.y??1)-(g.startPoint?.y??0)))*180/Math.PI+360)%360)+'deg,'+g.colors.map((c,i)=>color(c)+(g.stops?' '+g.stops[i]*100+'%':'')).join(',')+')';}else if(n.backgroundColor)e.style.background=color(n.backgroundColor);
   if(n.borderWidth)e.style.border=n.borderWidth+'px solid '+(n.borderColor?color(n.borderColor):'transparent');
   if(n.borderRadius)e.style.borderRadius=n.borderRadius+'px';
   if(n.width)e.style.width=n.width+'px';
