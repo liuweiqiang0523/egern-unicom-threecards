@@ -15,7 +15,7 @@ test('capture-only alternative preserves the exact live capture and has no inher
   assert.deepEqual(next.mitm,old.mitm);
   assert.equal(next.widgets,undefined);
   assert.equal(next.env_schema,undefined);
-  assert.equal(old.widgets.length,3,'existing users retain all module widgets');
+  assert.equal(old.widgets.length,4,'existing users retain all module widgets');
 });
 
 test('main-config fragment uses the same remote JS with unique editable widget names and fixed slots',async()=>{

@@ -17,7 +17,8 @@ test('compact module supplies one all widget, same capture and complete settings
  const {execFileSync}=await import('node:child_process');
  const yaml=p=>JSON.parse(execFileSync('ruby',['-rjson','-ryaml','-e','puts JSON.generate(YAML.load_file(ARGV[0]))',p],{encoding:'utf8'}));
  const old=yaml('UnicomThreeCards.yaml'),next=yaml('UnicomThreeCardsCompact.yaml'),local=yaml('UnicomLocalWidgets.fragment.yaml');
- assert.equal(next.widgets.length,1);assert.deepEqual(next.widgets[0].env,{VIEW:'all'});
+ assert.equal(next.name,'中国联通');assert.equal(old.name,'中国联通');
+ assert.equal(next.widgets.length,1);assert.deepEqual(next.widgets[0].env,{VIEW:'all'});assert.equal(next.widgets[0].name,'中国联通 · 三卡');
  assert.deepEqual(next.scriptings,old.scriptings);assert.deepEqual(next.mitm,old.mitm);assert.deepEqual(next.env_schema,old.env_schema);
  assert.equal(local.widgets.length,4);assert.equal(local.widgets[0].env.VIEW,'all');
 });
@@ -51,19 +52,26 @@ test('all settings retain exact titles, alias and cache timestamp without rerequ
  assert.equal(m.calls.length,3);assert.equal(t.backgroundColor.light,'#FFFFFFB3');assert.ok(texts(t).includes('我的三卡'));assert.ok(texts(t).includes('· 尾号0001'));
  assert.deepEqual([1,2,3].map(i=>m.ctx.storage.getJSON('egern.unicom3.v1.slot.'+i)),records);
 });
-test('medium summary is a three-row capsule card that never fakes a ratio',async()=>{
+test('medium summary is a three-row capsule card inside one rounded slot-tinted block',async()=>{
  const m=mock();for(const p of phones)await capture(m,p);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
  assert.equal(t.children.length,3);
+ assert.equal(t.gap,9); // card-to-card spacing so the three blocks read apart
  t.children.forEach((card,i)=>{
-  assert.equal(card.type,'stack');assert.equal(card.gap,2);assert.ok(!card.backgroundColor);
+  assert.equal(card.type,'stack');assert.equal(card.gap,2);
+  // The whole card is one rounded block: slot wash over the base + a brighter 1px outline.
+  assert.equal(card.borderRadius,16);assert.equal(card.borderWidth,1);assert.deepEqual(card.padding,[4,7,4,7]);
+  assert.equal(card.backgroundColor.light,['#2F7FE01A','#9B3FD61A','#12A5941A'][i]);
+  assert.equal(card.backgroundColor.dark,['#5AA9FF17','#BF5AF217','#38D6C017'][i]);
+  assert.equal(card.borderColor.light,['#2F7FE059','#9B3FD659','#12A59459'][i]);
   const [idRow,mid,flowCap]=card.children;
   assert.equal(idRow.type,'stack');assert.equal(mid.type,'stack');assert.equal(flowCap.type,'stack');
   // row1: slot square + identity + right-aligned HH:mm, no big value on this line
   assert.equal(idRow.children[0].type,'stack');assert.ok(idRow.children[0].width>0);
   assert.equal(idRow.children.at(-1).type,'text');assert.match(idRow.children.at(-1).text,/^(\d{2}:\d{2}|--:--)$/);
-  // row2: two equal capsules side by side
+  // row2: two equal capsules side by side, each keeping its own slot tint
   assert.equal(mid.children.length,2);assert.ok(mid.children.every(c=>c.flex===1));
+  assert.equal(mid.children[0].backgroundColor.light,['#2F7FE021','#9B3FD621','#12A59421'][i]);
   // row3: one full-width flow capsule (label + value over the bar), tinted with this card's slot
   assert.equal(flowCap.children.length,2);
   assert.equal(flowCap.backgroundColor.light,['#2F7FE021','#9B3FD621','#12A59421'][i]);

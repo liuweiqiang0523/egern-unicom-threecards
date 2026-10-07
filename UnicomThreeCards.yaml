@@ -1,6 +1,6 @@
-# 自动捕获前三个号码，按首次捕获顺序绑定卡1/2/3。
-name: 中国联通三卡
-description: 打开联通App切换三个号码查询余额，自动获取；三个独立组件
+# 自动捕获前三个号码，按首次捕获顺序绑定卡1/2/3。默认为单卡组件。
+name: 中国联通
+description: 打开联通App查询余额自动获取；默认一张卡，可另加卡2/卡3或三卡汇总
 icon: simcard.fill
 manual: https://github.com/liuweiqiang0523/egern-unicom-threecards/blob/main/INSTALL.md
 # Native Egern controls; defaults are placeholders, not module-level overrides.
@@ -47,6 +47,10 @@ env_schema:
     name: 卡3参考总量
     description: 可选。填写后该卡流量条按真实比例显示（如 500GB 或 500）；不填则按三卡相对长度显示。无限流量卡无需填写，永远不会显示百分比数字。
     default_value: ""
+  CARD_ORDER:
+    name: 卡片显示顺序
+    description: 可选，逗号分隔的三张卡显示顺序，如 3,1,2；只允许 1/2/3 各出现一次，缺省或非法（如 1,1,2、4、3,2）时按 1,2,3。只改汇总显示顺序，不影响卡槽、存储键或单卡组件。
+    default_value: ""
   SHOW_PHONE_SUFFIX:
     name: 显示号码尾四位
     description: 默认关闭；开启仅显示脱敏尾四位，不显示完整手机号。锁屏圆形不显示。
@@ -74,7 +78,7 @@ mitm:
     includes:
       - m.client.10010.com
 widgets:
-  - name: 中国联通卡1
+  - name: 中国联通
     script_name: unicom-threecards-render
     env:
       CARD_SLOT: "1"
@@ -86,3 +90,7 @@ widgets:
     script_name: unicom-threecards-render
     env:
       CARD_SLOT: "3"
+  - name: 中国联通 · 三卡
+    script_name: unicom-threecards-render
+    env:
+      VIEW: "all"

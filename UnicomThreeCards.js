@@ -126,6 +126,8 @@ const TRACK={light:'#E2E2E7',dark:'#5A5A5E'};
 const CHIP_BG={light:'#ECECF1',dark:'#3A3A3C'};
 const REMAIN={light:'#12833F',dark:'#31D05A'};
 const BAR_H=4, SEP_H=2;
+// Summary card block: full-width rounded wash per card so the three cards read apart on a phone.
+const CARD_RADIUS=16, CARD_GAP=9, CARD_PAD=[4,7,4,7];
 const UNIT_MB={KB:1/1024,M:1,MB:1,G:1024,GB:1024,T:1024*1024,TB:1024*1024};
 const FLOW_SIZES={systemSmall:{name:10,unit:8,title:8,value:10,label:8,tag:7,time:8,icon:6,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:9,unit:8,title:8,value:10,label:8,tag:7,time:7,icon:6,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:12,unit:10,title:10,value:13,label:10,tag:9,time:9,icon:7,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:13,unit:10,title:11,value:14,label:11,tag:10,time:10,icon:8,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
 // Which resource the API title describes; never inferred from the value itself.
@@ -164,6 +166,17 @@ function slotTint(slot) {const c=SLOT_COLORS[slot];return {light:c.light+TINT,da
 function slotFill(slot) {return {type:'linear',colors:[SLOT_BRIGHT[slot],SLOT_COLORS[slot]],startPoint:{x:0,y:0.5},endPoint:{x:1,y:0.5}};}
 // Unlimited cards fade to the same colour at 00 alpha so the bar visibly has no end.
 function slotFade(slot) {const c=SLOT_COLORS[slot];return {type:'linear',colors:[c,{light:c.light+'00',dark:c.dark+'00'}],startPoint:{x:0,y:0.5},endPoint:{x:1,y:0.5}};}
+// Big per-card block: a low-alpha slot wash over the widget base (dark ~0x17) plus a brighter 1px
+// outline, so the three cards are visibly separated. Inner capsules keep slotTint.
+function slotCardBg(slot) {const c=SLOT_COLORS[slot];return {light:c.light+'1A',dark:c.dark+'17'};}
+function slotCardBorder(slot) {const c=SLOT_COLORS[slot];return {light:c.light+'59',dark:c.dark+'4D'};}
+// CARD_ORDER only reorders the summary view: a strict 1/2/3 permutation, else the 1,2,3 default.
+function cardOrder(spec) {
+ const parts=(typeof spec==='string'||typeof spec==='number')?String(spec).split(',').map(p=>p.trim()):[];
+ if(parts.length!==3||!parts.every(p=>/^[123]$/.test(p))) return [0,1,2];
+ const nums=parts.map(Number);
+ return new Set(nums).size===3?nums.map(n=>n-1):[0,1,2];
+}
 // metric.unlimited -> gradient fade + ∞; metric.ratio -> real/relative fill; null -> plain separator.
 function flowBar(slot,metric,s) {
  if(metric.unlimited) return row([{type:'stack',height:BAR_H,flex:1,backgroundGradient:slotFade(slot),children:[]},text('∞',s.tag,COLORS.muted,'medium')],4);
@@ -215,8 +228,10 @@ function compactIdentity(alias,suffix,family,s) {
  if(suffix) parts.push({...text('· 尾号'+suffix,s.name-2,COLORS.value,'medium'),minScale:1});
  return parts;
 }
-// Three-row summary card: (1) slot square + alias + suffix + HH:mm, (2) fee/voice capsules,
-// (3) full-width flow capsule (API label + value/unit [+ 不限量 chip] over the flow bar).
+// One summary card is wrapped in a single rounded block: a low-alpha slot wash with a brighter 1px
+// outline, so the three cards read as separate blocks. Inside: (1) slot square + alias + suffix +
+// HH:mm, (2) fee/voice capsules, (3) full-width flow capsule (API label + value/unit [+ 不限量]
+// over the flow bar). The inner rows keep their own slot tint.
 function compactCard(ctx,result,selection,family,metric) {
  const lock=family.startsWith('accessory'),small=family==='systemSmall';
  const s=FLOW_SIZES[family]||FLOW_SIZES.systemMedium;
@@ -225,7 +240,8 @@ function compactCard(ctx,result,selection,family,metric) {
  const dot={type:'stack',width:s.icon,height:s.icon,borderRadius:2,backgroundColor:SLOT_COLORS[slot],children:[]};
  const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
  const idRow=row([dot,...compactIdentity(alias,lock?'':result.suffix,family,s),spacer(),{...text(time,s.time,COLORS.muted),minScale:1}],4);
- if(!result.data) return {type:'stack',direction:'column',gap:small||lock?2:3,children:[idRow,text(result.status,small||lock?9:11,COLORS.accent)]};
+ const block=children=>({type:'stack',direction:'column',gap:s.gap,padding:CARD_PAD,backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children});
+ if(!result.data) return lock?{type:'stack',direction:'column',gap:2,children:[idRow,text(result.status,9,COLORS.accent)]}:block([idRow,text(result.status,small?9:11,COLORS.accent)]);
  const [fee,voice,flow]=result.data;
  if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...compactIdentity(alias,'',family,s),text(flow.value,s.value,COLORS.value,'semibold'),text(flow.unit,s.unit,COLORS.muted)],3)]};
  const warning=lowBalance(fee,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD));
@@ -233,7 +249,7 @@ function compactCard(ctx,result,selection,family,metric) {
  const topRow=row([{...text(flow.title,s.title,COLORS.muted,'medium'),flex:1},text(flow.value,s.value,valueColor,'semibold'),text(flow.unit,s.unit,COLORS.muted,'medium'),...(metric.unlimited?[chip('不限量',s)]:[])],4);
  const flowCapsule={type:'stack',direction:'column',gap:s.fgap,padding:s.fpad,backgroundColor:slotTint(slot),borderRadius:12,children:[topRow,flowBar(slot,metric,s)]};
  const mid=small?[]:[row([miniCapsule(fee,slot,s,warning),miniCapsule(voice,slot,s,false)],6)];
- return {type:'stack',direction:'column',gap:s.gap,children:[idRow,...mid,flowCapsule]};
+ return block([idRow,...mid,flowCapsule]);
 }
 // Decide each card's bar: unlimited (no total + "已用" label) fades out; a configured total gives a
 // real used/total ratio; otherwise a relative length versus the max same-caliber value of the three.
@@ -265,15 +281,17 @@ async function compactWidget(ctx) {
  const results=await Promise.all([1,2,3].map(async selection=>{
   try {return await displayResult(ctx,String(selection));} catch {return {status:'查询失败，请重试'};}
  }));
+ // Display order only; slots, storage keys and the single-card path are untouched.
+ const order=cardOrder(ctx.env?.CARD_ORDER);
  const lock=family.startsWith('accessory'),small=family==='systemSmall';
  if(family==='accessoryInline'||family==='accessoryCircular') {
   // These families cannot fit three full rows; never silently show only card1.
-  const summary=results.map((r,i)=>'卡'+(i+1)+' '+(r.data?r.data[2].title+' '+r.data[2].value+r.data[2].unit:r.status));
+  const summary=order.map(i=>'卡'+(i+1)+' '+(results[i].data?results[i].data[2].title+' '+results[i].data[2].value+results[i].data[2].unit:results[i].status));
   return {...widget(family==='accessoryInline'?[text(summary.join(' · '),9)]:summary.map(s=>text(s,9)),enabled(ctx.env?.TRANSLUCENT)),padding:family==='accessoryInline'?0:4,gap:1};
  }
  const metrics=flowMetrics(ctx,results);
  const title=lock?'':safeTitle(ctx.env?.WIDGET_TITLE,enabled(ctx.env?.SHOW_BRAND)?'中国联通':'');
- return {...widget([...(title?[row([{...text(title,9,COLORS.muted,'medium'),flex:1}])]:[]),...results.map((r,i)=>compactCard(ctx,r,i+1,family,metrics[i]))],enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:small?6:family==='systemMedium'?5:8,gap:lock?2:small?4:family==='systemMedium'?2:6};
+ return {...widget([...(title?[row([{...text(title,9,COLORS.muted,'medium'),flex:1}])]:[]),...order.map(i=>compactCard(ctx,results[i],i+1,family,metrics[i]))],enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:small?6:family==='systemMedium'?5:8,gap:lock?2:CARD_GAP};
 }
 export default async function(ctx) {
  if(ctx.request) {capture(ctx);return;}

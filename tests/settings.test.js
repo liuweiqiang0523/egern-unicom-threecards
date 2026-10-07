@@ -10,7 +10,7 @@ const families=['systemSmall','systemMedium','systemLarge','systemExtraLarge','a
 const nodes=w=>[w,...(w.children||[]).flatMap(nodes)];
 const content=w=>nodes(w).filter(n=>n.type==='text').map(n=>n.text).join('');
 test('module exposes real native settings, no slot override or imaginary API options',()=>{
- assert.deepEqual(Object.keys(moduleConfig.env_schema).sort(),['CARD1_NAME','CARD1_TOTAL','CARD2_NAME','CARD2_TOTAL','CARD3_NAME','CARD3_TOTAL','LOW_BALANCE_THRESHOLD','SHOW_BRAND','SHOW_PHONE_SUFFIX','TRANSLUCENT','WIDGET_TITLE']);
+ assert.deepEqual(Object.keys(moduleConfig.env_schema).sort(),['CARD1_NAME','CARD1_TOTAL','CARD2_NAME','CARD2_TOTAL','CARD3_NAME','CARD3_TOTAL','CARD_ORDER','LOW_BALANCE_THRESHOLD','SHOW_BRAND','SHOW_PHONE_SUFFIX','TRANSLUCENT','WIDGET_TITLE']);
  assert.deepEqual(moduleConfig.env_schema.TRANSLUCENT.options,['true','false']);
  assert.equal(moduleConfig.env_schema.TRANSLUCENT.default_value,'false');
  assert.equal(moduleConfig.env_schema.WIDGET_TITLE.default_value,'');assert.deepEqual(moduleConfig.env_schema.SHOW_BRAND.options,['true','false']);assert.equal(moduleConfig.env_schema.SHOW_BRAND.default_value,'false');
@@ -18,8 +18,22 @@ test('module exposes real native settings, no slot override or imaginary API opt
  for(const key of ['CARD1_NAME','CARD2_NAME','CARD3_NAME'])assert.equal(moduleConfig.env_schema[key].default_value,'');
  assert.ok(!moduleConfig.env?.CARD_SLOT);
  for(const s of moduleConfig.scriptings)assert.ok(!Object.values(s)[0].env?.CARD_SLOT);
- assert.deepEqual(moduleConfig.widgets.map(w=>w.env.CARD_SLOT),['1','2','3']);
+ assert.deepEqual(moduleConfig.widgets.slice(0,3).map(w=>w.env.CARD_SLOT),['1','2','3']);
  const urls=moduleConfig.scriptings.map(s=>Object.values(s)[0].script_url);assert.equal(new Set(urls).size,1);
+});
+test('module defaults to one card named 中国联通, adds card2/3 and a summary, with no module-level slot',()=>{
+ assert.equal(moduleConfig.name,'中国联通');
+ // First widget must be the single card, so one-card users need no summary.
+ assert.equal(moduleConfig.widgets[0].name,'中国联通');
+ assert.equal(moduleConfig.widgets[0].env.CARD_SLOT,'1');
+ assert.equal(moduleConfig.widgets[0].env.VIEW,undefined);
+ assert.deepEqual(moduleConfig.widgets.map(w=>w.env.CARD_SLOT),[ '1','2','3',undefined]);
+ assert.equal(moduleConfig.widgets.at(-1).name,'中国联通 · 三卡');
+ assert.equal(moduleConfig.widgets.at(-1).env.VIEW,'all');
+ assert.ok(!moduleConfig.env?.CARD_SLOT);
+ assert.equal(moduleConfig.env_schema.CARD_ORDER.name,'卡片显示顺序');
+ assert.equal(moduleConfig.env_schema.CARD_ORDER.default_value,'');
+ assert.ok(moduleConfig.env_schema.CARD_ORDER.description.includes('3,1,2'));
 });
 test('capture and slot namespace remain byte-identical to deployed working version',()=>{
  // Baseline SHA-256 from deployed 85980a3; works with Actions' shallow checkout.
@@ -29,7 +43,7 @@ test('capture and slot namespace remain byte-identical to deployed working versi
 });
 test('module > widget > script settings contract preserves all three slots',async()=>{
  const m=mock();for(const p of phones)await capture(m,p);
- for(const w of moduleConfig.widgets){
+ for(const w of moduleConfig.widgets.filter(w=>w.env.CARD_SLOT)){
   // Egern merges this before invoking JS, as documented; this simulates that contract.
   const scriptEnv={WIDGET_TITLE:'脚本'},widgetEnv={...w.env,WIDGET_TITLE:'组件',TRANSLUCENT:'false'},moduleEnv={WIDGET_TITLE:'全局',TRANSLUCENT:'true'};
   const result=await run({...m.ctx,env:{...scriptEnv,...widgetEnv,...moduleEnv}});
