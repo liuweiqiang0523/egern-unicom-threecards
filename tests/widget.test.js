@@ -57,7 +57,7 @@ test('first capture order assigns slots without any module env; repeats preserve
 });
 test('unconfigured widget guides capture and invalid slot is rejected without HTTP',async()=>{
  const m=mock();assert.match(JSON.stringify(await run(m.ctx)),/待捕获/);
- m.ctx.env.CARD_SLOT='all';assert.match(JSON.stringify(await run(m.ctx)),/只能为/);assert.equal(m.calls.length,0);
+ m.ctx.env.CARD_SLOT='invalid';assert.match(JSON.stringify(await run(m.ctx)),/只能为/);assert.equal(m.calls.length,0);
 });
 test('credential refresh resets only own cache',async()=>{
  const m=mock();for(const p of phones)await capture(m,p);await renderAll(m);const other=m.db.get(key(phones[1]));await capture(m,phones[0],'mock=ROTATED');assert.equal(m.ctx.storage.getJSON(key(phones[0])).data,undefined);assert.equal(m.db.get(key(phones[1])),other);

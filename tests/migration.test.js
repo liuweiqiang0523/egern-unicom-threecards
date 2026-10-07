@@ -23,9 +23,9 @@ test('main-config fragment uses the same remote JS with unique editable widget n
   const old=yaml('UnicomThreeCards.yaml'),local=yaml('UnicomLocalWidgets.fragment.yaml');
   assert.deepEqual(Object.keys(local).sort(),['scriptings','widgets']);
   assert.deepEqual(local.scriptings,[old.scriptings.find(x=>x.generic)]);
-  assert.equal(new Set(local.widgets.map(w=>w.name)).size,3);
+  assert.equal(new Set(local.widgets.map(w=>w.name)).size,4);
   assert.ok(local.widgets.every(w=>!old.widgets.some(o=>o.name===w.name)));
-  assert.deepEqual(local.widgets.map(w=>w.env.CARD_SLOT),['1','2','3']);
+  assert.deepEqual(local.widgets.slice(1).map(w=>w.env.CARD_SLOT),['1','2','3']);
   const m=mock();
   for(const p of phones) await capture(m,p);
   const before=[...m.db.keys()];
@@ -33,7 +33,7 @@ test('main-config fragment uses the same remote JS with unique editable widget n
     assert.equal(w.script_name,local.scriptings[0].generic.name);
     const tree=await run({...m.ctx,env:w.env});
     assert.equal(tree.type,'widget');
-    assert.ok(JSON.stringify(tree).includes('卡'+w.env.CARD_SLOT));
+    assert.ok(JSON.stringify(tree).includes(w.env.VIEW==='all'?'卡1':'卡'+w.env.CARD_SLOT));
   }
   assert.deepEqual([...m.db.keys()],before,'sorting widgets does not remap storage slots');
 });

@@ -6,6 +6,32 @@ https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/U
 脚本：
 https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomThreeCards.js
 
+## 三卡合一紧凑版（新入口）
+
+直接模块 URL：
+https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomThreeCardsCompact.yaml
+
+**已有三卡用户最短路径：** 工具 → 模块 → 编辑原联通模块，把原 URL 换成上方 Compact URL，保留已有外观 Env、更新模块和远程 JS。不要先删除旧模块、不要清空 storage、不要同时启用两个联通捕获模块。两版有相同 capture/generic 名称；官方未定义跨模块重名冲突如何合并，故用原条目替换 URL，而不是并装。新模块接管相同捕获规则、MITM、JS URL及 `egern.unicom3.v1.slot.N`，沿用已捕获三卡；不需手填手机号/Cookie或重新抓取。
+
+先到分析 → 小组件画廊打开“联通三卡汇总”，核对三行，再在桌面添加/编辑 **Egern 中号**，名称选“联通三卡汇总”。旧桌面“中国联通卡N”在替换后暂时找不到定义不表示凭据丢失。推荐中号；小号保留三卡身份与流量但省略话费/语音，超长数值会缩放；锁屏圆形/行内仅三卡流量摘要，极窄空间可能难读，请改中号，绝不只显示卡1冒充汇总。大号舒展三行。
+
+每行：别名（可保留“双不限”）/按需尾四位/原成功 HH:mm → **接口原义的流量标签、完整值、单位** → 次级话费与语音。没有总量就没有比例/进度填充，浅蓝整行只是信息底色，不能由已用值推断套餐。单卡失败只影响该行；三卡并行请求，各8秒超时，generic 20秒；仍为1小时新鲜缓存、24小时失败回退。全部原外观控件在 Compact 模块设置页可用。
+
+回退：原条目 URL 改回 `UnicomThreeCards.yaml` 并更新，桌面选回“中国联通卡1/2/3”；旧模块三独立组件仍原样保留。新 JS 只在 `VIEW=all` 或 `CARD_SLOT=all` 时汇总，默认/1/2/3行为不变。
+
+### 不改整份 YAML 的可编辑本地汇总入口
+
+模块汇总本身仍是“模块小组件”，**不会因此变为可删除的本地条目**。要像其他自建组件一样管理，可保留 Compact 捕获模块，另建本机 generic：
+
+1. 工具 → 脚本 → `+`，名称 `unicom-threecards-local`，类型 `generic`，超时20秒。若你的版本提供远程文件位置，填本仓库 `UnicomThreeCards.js` URL；官方主配置支持远程 URL，但 UI 文档只演示“本地”，没有承诺所有版本提供远程选择。
+2. 若没有远程选项：下载同一 JS，文件位置选“本地”，导入/编辑为 `UnicomThreeCards.js`。**这条路径无需粘贴配置片段，但本地文件 URL 与已验证远程共享路径不同，存储共享需本机验收，不能承诺自动继承。** 若变成待捕获，保留 Compact 正常组件，不清空存储，停止切换。可靠同远程路径的替代是下文增量片段，而不是覆盖完整 YAML。
+3. 分析 → 小组件画廊 → `+`，名称“联通本地三卡汇总”，脚本选刚创建的本机 generic；组件 Env 设置 `VIEW=all`。按需复制 CARD1_NAME/2/3（例如双不限）、SHOW_PHONE_SUFFIX 等外观 Env；模块设置不保证传给本机条目。别把 VIEW=all 设置到复用单卡脚本的默认 Env。
+4. 核对三行值后即可在本地画廊编辑/删除该条目，桌面选择新名称。无需停捕获才能试本地入口。若希望隐藏模块汇总，**仅在本地汇总实机可用后**把原模块 URL 换为 `UnicomCapture.yaml`；它继续抓取，没有模块 widgets。不要同时启用两份捕获模块。
+
+主配置增量 `UnicomLocalWidgets.fragment.yaml` 现含“联通本地三卡汇总”（VIEW=all）及三个可选单卡。只添加汇总也可；新增/删/排序不改卡槽。此文件不是模块或完整配置，不能用它覆盖机场 YAML。下面保留详细增量迁移说明；**不是安装紧凑模块的前置条件**。
+
+交付验证为 Node 真正执行生成 DSL、完整回归、YAML、CI及 raw 文件读回；未调用真实账号接口。本次布局与本机 UI 新入口仍待 iPhone 检查。`preview/compact.html` 是用真实 JS DSL + 合成测试 fixture 的交互设计预览，不是实机截图或用户真实余额。
+
 ## 已安装用户升级
 
 在 Egern 更新模块及其远程 JS 脚本，再刷新组件即可。不要删除模块、清空存储或重新添加组件。此次外观升级保留已有卡槽、手机号及 Cookie，**无需重新抓取**。旧格式缓存会主动查询升级；网络失败时保留有效期内的旧缓存并标记“旧缓存（查询失败）”，使用中性标题，不猜测已用/剩余。
@@ -20,7 +46,7 @@ https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/U
 
 1. **备份当前配置，保留已工作模块。** 在 Egern 的配置编辑入口打开当前正在使用的主 YAML，只追加下方增量条目。已有 `scriptings:` 或 `widgets:` 时把条目加入对应列表，**不能再次粘贴同名顶层键、不能覆盖已有机场/网络诊断脚本、不能把片段作为完整配置导入**。不需要提供手机号、Cookie、证书或订阅给任何人。若已有同名本地 `unicom-threecards-render`，核对 URL 与 timeout 后复用，不重复添加。
 
-   可复制片段：[UnicomLocalWidgets.fragment.yaml](https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomLocalWidgets.fragment.yaml)。此片段**不是模块**，不要添加到模块列表。只包含下面四个定义：
+   可复制片段：[UnicomLocalWidgets.fragment.yaml](https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomLocalWidgets.fragment.yaml)。此片段**不是模块**，不要添加到模块列表。包含一个脚本和四个组件；下方旧单卡示例可选，汇总另设 VIEW=all：
 
    ```yaml
    scriptings:
@@ -71,7 +97,7 @@ https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/U
 
 ### 机场订阅排版参考
 
-机场示例值得借鉴的是紧凑标题、次级小字和同一行两端对齐的信息层级；本次只研究，不更改已选 A 三色胶囊、资源标题或数值。机场流量进度条需要可信的总量/已用/剩余字段，当前联通契约没有已验证套餐总量，不能拿 `flowPersent` 字段名当百分比，不能生成虚构进度或通过未知总量做减法。
+机场示例值得借鉴的是紧凑标题、次级小字和同一行两端对齐的信息层级；原单卡保留 A 三色胶囊；新 Compact 独立提供三行汇总，不改变资源原义或数值。机场流量进度条需要可信的总量/已用/剩余字段，当前联通契约没有已验证套餐总量，不能拿 `flowPersent` 字段名当百分比，不能生成虚构进度或通过未知总量做减法。
 
 ## 首次安装
 

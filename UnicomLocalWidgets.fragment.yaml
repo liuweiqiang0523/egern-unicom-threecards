@@ -7,6 +7,10 @@ scriptings:
       script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomThreeCards.js
       timeout: 20
 widgets:
+  - name: 联通本地三卡汇总
+    script_name: unicom-threecards-render
+    env:
+      VIEW: "all"
   - name: 联通本地卡1
     script_name: unicom-threecards-render
     env:

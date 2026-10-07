@@ -149,9 +149,39 @@ function lockWidget(result,labels,family,translucent,threshold) {
  if(family==='accessoryCircular') return lock([text(d[2].title,9),{...text(d[2].value,20,COLORS.value,'semibold'),textAlign:'center'},text(d[2].unit+status,9)]);
  return lock([row([...labels,text(label(d[0]),12,feeColor)],2),text(label(d[1]),10),text(label(d[2])+status,10)]);
 }
+function compactRow(ctx,result,selection,family) {
+ const small=family==='systemSmall',lock=family.startsWith('accessory');
+ const alias=cardName(ctx.env?.['CARD'+selection+'_NAME'],selection);
+ const labels=identityTexts('',alias,lock?'':result.suffix,small?'systemSmall':family);
+ const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
+ const dot={type:'stack',width:5,height:5,borderRadius:3,backgroundColor:SLOT_COLORS[selection-1],children:[]};
+ const heading=row([dot,...labels,...(!lock?[{...text(time,9,COLORS.muted),minScale:1}]:[])],4);
+ if(!result.data) return {type:'stack',direction:'column',gap:2,children:[heading,{...text(result.status,small||lock?9:11,COLORS.accent),maxLines:1}]};
+ const [fee,voice,flow]=result.data;
+ const flowLine=row([{...text(flow.title,small||lock?9:10,COLORS.muted,'medium'),flex:1},text(flow.value,lock?11:small?15:family==='systemMedium'?16:19,COLORS.value,'semibold'),text(flow.unit,9,COLORS.muted)],3);
+ const secondary=text(fee.title+' '+fee.value+fee.unit+' · '+voice.title+' '+voice.value+voice.unit,9,lowBalance(fee,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD))?WARNING.value:COLORS.muted);
+ const primary=family==='systemMedium'?[row([{...heading,flex:1},{...flowLine,flex:1}],6)]:[heading,flowLine];
+ return {type:'stack',direction:'column',gap:small||lock||family==='systemMedium'?1:2,...(lock?{}:{padding:[2,6,2,6],backgroundColor:CAPSULE_COLORS[2],borderRadius:8}),children:[...primary,...(!small&&!lock?[secondary]:[]),...(result.status==='已更新'?[]:[text(result.status,8,COLORS.accent)])]};
+}
+async function compactWidget(ctx) {
+ const family=typeof ctx.widgetFamily==='string'?ctx.widgetFamily:'systemMedium';
+ // Each load retains its own credentials/cache/auth handling; requests run concurrently.
+ const results=await Promise.all([1,2,3].map(async selection=>{
+  try {return await displayResult(ctx,String(selection));} catch {return {status:'查询失败，请重试'};}
+ }));
+ const lock=family.startsWith('accessory');
+ if(family==='accessoryInline'||family==='accessoryCircular') {
+  // These families cannot fit three full rows; never silently show only card1.
+  const summary=results.map((r,i)=>'卡'+(i+1)+' '+(r.data?r.data[2].title+' '+r.data[2].value+r.data[2].unit:r.status));
+  return {...widget(family==='accessoryInline'?[text(summary.join(' · '),9)]:summary.map(s=>text(s,9)),enabled(ctx.env?.TRANSLUCENT)),padding:family==='accessoryInline'?0:4,gap:1};
+ }
+ const title=safeTitle(ctx.env?.WIDGET_TITLE,enabled(ctx.env?.SHOW_BRAND)?'中国联通':'');
+ return {...widget([...(title&&!lock?[text(title,10,COLORS.muted,'medium')]:[]),...results.map((r,i)=>compactRow(ctx,r,i+1,family))],enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:family==='systemSmall'?6:8,gap:family==='systemLarge'||family==='systemExtraLarge'?10:3};
+}
 export default async function(ctx) {
  if(ctx.request) {capture(ctx);return;}
  const selection=String(ctx.env?.CARD_SLOT||'1');
+ if(ctx.env?.VIEW==='all'||selection==='all') return compactWidget(ctx);
  if(!['1','2','3'].includes(selection)) return widget([text('CARD_SLOT 只能为 1 / 2 / 3')]);
  const result=await displayResult(ctx,selection);
  const alias=cardName(ctx.env?.['CARD'+selection+'_NAME'],selection);
