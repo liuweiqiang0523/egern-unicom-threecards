@@ -127,6 +127,16 @@ const CAPSULE_COLORS=[{light:'#FFF1E5',dark:'#FFB97626'},{light:'#F2EDFF',dark:'
 const SLOT_COLORS=[{light:'#2F7FE0',dark:'#5AA9FF'},{light:'#9B3FD6',dark:'#BF5AF2'},{light:'#12A594',dark:'#38D6C0'}];
 const SLOT_BRIGHT=[{light:'#5AA9FF',dark:'#8CC4FF'},{light:'#BF5AF2',dark:'#D98DFF'},{light:'#38D6C0',dark:'#6FE6D6'}];
 const TINT='21';
+// Summary-only neutral glass palette; single-card styling and account slots stay unchanged.
+const SUMMARY_COLORS=[{light:'#8843C2',dark:'#B66CFF'},{light:'#286CC4',dark:'#5EA7FF'},{light:'#087F70',dark:'#48D7C0'}];
+const SUMMARY_BG={light:'#F3F4F6',dark:'#17181B'};
+const SUMMARY_INK={light:'#202329',dark:'#ECEEF2'};
+const SUMMARY_MUTED={light:'#626975',dark:'#989EA9'};
+const SUMMARY_TRACK={light:'#D9DDE3',dark:'#303238'};
+function summaryFeeColor(d,threshold,slot) {
+ if(!lowBalance(d,threshold)) return SUMMARY_COLORS[slot];
+ return Number(d.value)<threshold/2?{light:'#B83A47',dark:'#FF5C68'}:{light:'#A75E32',dark:'#D99A70'};
+}
 const WARNING={background:{light:'#FDE9E7',dark:'#FF786426'},value:{light:'#B83A32',dark:'#FFB4AA'}};
 const TRACK={light:'#E2E2E7',dark:'#5A5A5E'};
 const CHIP_BG={light:'#ECECF1',dark:'#3A3A3C'};
@@ -169,14 +179,13 @@ function flowRatio(flow,spec) {
  const ratio=used/total;
  return Number.isFinite(ratio)?Math.max(0,Math.min(1,ratio)):null;
 }
-function slotTint(slot) {const c=SLOT_COLORS[slot];return {light:c.light+TINT,dark:c.dark+TINT};}
-function slotFill(slot) {return {type:'linear',colors:[SLOT_BRIGHT[slot],SLOT_COLORS[slot]],startPoint:{x:0,y:0.5},endPoint:{x:1,y:0.5}};}
+function slotTint(slot) {return {light:'#FFFFFF',dark:'#23262B'};}
+function slotFill(slot) {const c=SUMMARY_COLORS[slot];return {type:'linear',colors:[c,c],startPoint:{x:0,y:0.5},endPoint:{x:1,y:0.5}};}
 // Unlimited cards fade to the same colour at 00 alpha so the bar visibly has no end.
-function slotFade(slot) {const c=SLOT_COLORS[slot];return {type:'linear',colors:[c,{light:c.light+'00',dark:c.dark+'00'}],startPoint:{x:0,y:0.5},endPoint:{x:1,y:0.5}};}
-// Big per-card block: a low-alpha slot wash over the widget base (dark ~0x17) plus a brighter 1px
-// outline, so the three cards are visibly separated. Inner capsules keep slotTint.
-function slotCardBg(slot) {const c=SLOT_COLORS[slot];return {light:c.light+'1A',dark:c.dark+'17'};}
-function slotCardBorder(slot) {const c=SLOT_COLORS[slot];return {light:c.light+'59',dark:c.dark+'4D'};}
+function slotFade(slot) {const c=SUMMARY_COLORS[slot];return {type:'linear',colors:[c,{light:c.light+'00',dark:c.dark+'00'}],startPoint:{x:0,y:0.5},endPoint:{x:1,y:0.5}};}
+// Neutral summary surfaces separate cards without broad purple/blue/teal colour washes.
+function slotCardBg(slot) {return {light:'#F8F9FB',dark:'#1D1F23'};}
+function slotCardBorder(slot) {return {light:'#DDE1E7',dark:'#292B30'};}
 // CARD_ORDER only reorders the summary view: a strict 1/2/3 permutation, else the 1,2,3 default.
 function cardOrder(spec) {
  const parts=(typeof spec==='string'||typeof spec==='number')?String(spec).split(',').map(p=>p.trim()):[];
@@ -186,12 +195,12 @@ function cardOrder(spec) {
 }
 // metric.unlimited -> gradient fade + ∞; metric.ratio -> real/relative fill; null -> plain separator.
 function flowBar(slot,metric,s) {
- if(metric.unlimited) return row([{type:'stack',height:BAR_H,flex:1,backgroundGradient:slotFade(slot),children:[]},text('∞',s.tag,COLORS.muted,'medium')],4);
- if(metric.ratio===null) return {type:'stack',direction:'row',height:SEP_H,borderRadius:1,backgroundColor:TRACK,children:[]};
+ if(metric.unlimited) return row([{type:'stack',height:BAR_H,flex:1,backgroundGradient:slotFade(slot),children:[]},text('∞',s.tag,SUMMARY_MUTED,'medium')],4);
+ if(metric.ratio===null) return {type:'stack',direction:'row',height:SEP_H,borderRadius:1,backgroundColor:SUMMARY_TRACK,children:[]};
  const r=Math.round(metric.ratio*1000);
  const fill={type:'stack',height:BAR_H,backgroundGradient:slotFill(slot),flex:r};
  const inner=r>=1000?[fill]:r<=0?[]:[fill,{type:'stack',height:BAR_H,flex:1000-r}];
- return {type:'stack',direction:'row',height:BAR_H,borderRadius:BAR_H/2,backgroundColor:TRACK,children:inner};
+ return {type:'stack',direction:'row',height:BAR_H,borderRadius:BAR_H/2,backgroundColor:SUMMARY_TRACK,children:inner};
 }
 function balanceThreshold(value) {
  if(!['string','number'].includes(typeof value)||!/^\d+(?:\.\d+)?$/.test(String(value).trim())) return 10;
@@ -202,9 +211,9 @@ function capsule(d,index,center=false,warning=false) {
  return {type:'stack',direction:'column',alignItems:'center',...(center?{}:{flex:1}),padding:[7,center?20:8,7,center?20:8],gap:3,backgroundColor:warning?WARNING.background:CAPSULE_COLORS[index],borderRadius:14,children:[text(d.title,10,{light:'#51515A',dark:'#D8D8DF'},'medium'),row([text(d.value,22,warning?WARNING.value:COLORS.value,'semibold'),text(d.unit,10,COLORS.muted)],3)]};
 }
 function chip(label,s) {return {type:'stack',direction:'row',alignItems:'center',padding:[1,6,1,6],borderRadius:6,backgroundColor:CHIP_BG,children:[text(label,s.tag,COLORS.muted,'medium')]};}
-// One resource capsule of the compact summary: slot-coloured ~13% tint, small grey label, big value.
-function miniCapsule(d,slot,s,warning) {
- return {type:'stack',direction:'row',alignItems:'center',flex:1,gap:3,padding:s.cpad,backgroundColor:warning?WARNING.background:slotTint(slot),borderRadius:10,children:[text(d.title,s.label,COLORS.muted,'medium'),text(d.value,s.value,warning?WARNING.value:COLORS.value,'semibold'),text(d.unit,s.unit,COLORS.muted)]};
+// Summary resources use neutral surfaces; hue is confined to status marks and key values.
+function miniCapsule(d,slot,s,valueColor=SUMMARY_INK) {
+ return {type:'stack',direction:'row',alignItems:'center',flex:1,gap:3,padding:s.cpad,backgroundColor:slotTint(slot),borderRadius:10,children:[text(d.title,s.label,SUMMARY_MUTED,'medium'),text(d.value,s.value,valueColor,'semibold'),text(d.unit,s.unit,SUMMARY_MUTED)]};
 }
 function footer(status) {
  return row([spacer(),text(status,9,COLORS.muted)]);
@@ -235,29 +244,27 @@ function compactIdentity(alias,suffix,family,s) {
  if(suffix) parts.push({...text('· 尾号'+suffix,s.name-2,COLORS.value,'medium'),minScale:1});
  return parts;
 }
-// One summary card is wrapped in a single rounded block: a low-alpha slot wash with a brighter 1px
-// outline, so the three cards read as separate blocks. Inside: (1) slot square + alias + suffix +
-// HH:mm, (2) fee/voice capsules, (3) full-width flow capsule (API label + value/unit [+ 不限量]
-// over the flow bar). The inner rows keep their own slot tint.
+// Summary geometry is unchanged: identity/time, two resource capsules, full-width flow capsule.
+// Only surfaces, text accents and warning colours differ from the previous tinted design.
 function compactCard(ctx,result,selection,family,metric) {
  const lock=family.startsWith('accessory'),small=family==='systemSmall';
  const s=FLOW_SIZES[family]||FLOW_SIZES.systemMedium;
  const slot=selection-1;
  const alias=cardName(ctx.env?.['CARD'+selection+'_NAME'],selection);
- const dot={type:'stack',width:s.icon,height:s.icon,borderRadius:2,backgroundColor:SLOT_COLORS[slot],children:[]};
+ const dot={type:'stack',width:s.icon,height:s.icon,borderRadius:2,backgroundColor:SUMMARY_COLORS[slot],children:[]};
  const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
- const idRow=row([dot,...compactIdentity(alias,lock?'':result.suffix,family,s),spacer(),{...text(time,s.time,COLORS.muted),minScale:1}],4);
+ const idRow=row([dot,...compactIdentity(alias,lock?'':result.suffix,family,s),spacer(),{...text(time,s.time,SUMMARY_MUTED),minScale:1}],4);
  const block=children=>({type:'stack',direction:'column',gap:s.gap,padding:CARD_PAD,flex:1,backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children});
  if(!result.data) return lock?{type:'stack',direction:'column',gap:2,children:[idRow,text(result.status,9,COLORS.accent)]}:block([idRow,text(result.status,small?9:11,COLORS.accent)]);
  const [fee,voice,flow]=result.data;
- if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...compactIdentity(alias,'',family,s),text(flow.value,s.value,COLORS.value,'semibold'),text(flow.unit,s.unit,COLORS.muted)],3)]};
- const warning=lowBalance(fee,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD));
- const valueColor=flowSemantic(flow.title)==='remaining'?REMAIN:COLORS.value;
- const topRow=row([{...text(flow.title,s.title,COLORS.muted,'medium'),flex:1},text(flow.value,s.value,valueColor,'semibold'),text(flow.unit,s.unit,COLORS.muted,'medium'),...(metric.unlimited?[chip('不限量',s)]:[])],4);
+ if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...compactIdentity(alias,'',family,s),text(flow.value,s.value,COLORS.value,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED)],3)]};
+ const feeColor=summaryFeeColor(fee,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD),slot);
+ const valueColor=SUMMARY_COLORS[slot];
+ const topRow=row([{...text(flow.title,s.title,SUMMARY_MUTED,'medium'),flex:1},text(flow.value,s.value,valueColor,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED,'medium'),...(metric.unlimited?[chip('不限量',s)]:[])],4);
  // The flow capsule is flexible and holds a spacer above its bar, so when the card is given extra
  // height the bar sinks to the bottom instead of leaving a dead tinted gap under the label.
  const flowCapsule={type:'stack',direction:'column',gap:s.fgap,padding:s.fpad,flex:1,backgroundColor:slotTint(slot),borderRadius:12,children:[topRow,spacer(),flowBar(slot,metric,s)]};
- const mid=small?[]:[row([miniCapsule(fee,slot,s,warning),miniCapsule(voice,slot,s,false)],6)];
+ const mid=small?[]:[row([miniCapsule(fee,slot,s,feeColor),miniCapsule(voice,slot,s)],6)];
  return block([idRow,...mid,flowCapsule]);
 }
 // Decide each card's bar: unlimited (no total + "已用" label) fades out; a configured total gives a
@@ -314,7 +321,7 @@ async function compactWidget(ctx) {
  // is the one flexible child, so the freed space goes to the three cards (each flex:1) instead of
  // puffing up the heading.
  const children=titleBar.length?[titleBar[0],{type:'stack',direction:'column',gap:CARD_GAP,flex:1,children:cardList}]:cardList;
- return {...widget(children,enabled(ctx.env?.TRANSLUCENT)),padding:lock?4:small?6:family==='systemMedium'?6:family==='systemLarge'?7:8,gap:lock?2:titleBar.length?TITLE_GAP:CARD_GAP};
+ return {...widget(children,enabled(ctx.env?.TRANSLUCENT)),backgroundColor:enabled(ctx.env?.TRANSLUCENT)?{light:'#F3F4F6B3',dark:'#17181BB3'}:SUMMARY_BG,padding:lock?4:small?6:family==='systemMedium'?6:family==='systemLarge'?7:8,gap:lock?2:titleBar.length?TITLE_GAP:CARD_GAP};
 }
 export default async function(ctx) {
  if(ctx.request) {capture(ctx);return;}

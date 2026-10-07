@@ -6,7 +6,7 @@ import {mock,capture,phones,cards,cardHolder} from './helpers.js';
 const nodes=n=>[n,...(n.children||[]).flatMap(nodes)];
 const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(texts)];
 // Slot-tinted card wash (dark) identifies each card after CARD_ORDER rearranges the rows.
-const cardDark=['#5AA9FF17','#BF5AF217','#38D6C017'];
+const cardDark=['#1D1F23','#1D1F23','#1D1F23'];
 
 test('every home summary card is one rounded slot-tinted block with a brighter 1px outline and card gap',async()=>{
  for(const family of ['systemSmall','systemMedium','systemLarge','systemExtraLarge']){
@@ -20,11 +20,11 @@ test('every home summary card is one rounded slot-tinted block with a brighter 1
    assert.equal(card.borderRadius,16,family);
    assert.equal(card.borderWidth,1,family);
    assert.equal(card.backgroundColor.dark,cardDark[i],family);
-   assert.equal(card.backgroundColor.light,['#2F7FE01A','#9B3FD61A','#12A5941A'][i],family);
-   assert.equal(card.borderColor.dark,['#5AA9FF4D','#BF5AF24D','#38D6C04D'][i],family);
+   assert.equal(card.backgroundColor.light,'#F8F9FB',family);
+   assert.equal(card.borderColor.dark,'#292B30',family);
    // the dark wash must stay the specified subtle 0x14..0x1F range, not a solid fill
-   const alpha=parseInt(card.backgroundColor.dark.slice(7),16);
-   assert.ok(alpha>=0x14&&alpha<=0x1f,family+' alpha '+alpha);
+   assert.equal(card.children[0].children[0].backgroundColor.dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
+   assert.equal(card.backgroundColor.dark.length,7,'neutral opaque card, no slot wash');
    assert.ok(Array.isArray(card.padding),family);
   });
  }
@@ -84,5 +84,5 @@ test('unlimited cards stay ∞ + 不限量 with no percentage and a low fee is s
  assert.equal(texts(t).filter(x=>x==='不限量').length,3);
  assert.equal(texts(t).filter(x=>x==='∞').length,3);
  assert.ok(!texts(t).join('|').includes('%'));
- assert.equal(nodes(t).find(n=>n.type==='text'&&n.text==='2.10').textColor.light,'#B83A32');
+ assert.equal(nodes(t).find(n=>n.type==='text'&&n.text==='2.10').textColor.light,'#B83A47');
 });

@@ -27,8 +27,8 @@ test('summary slot palette is blue/purple/cyan and no colour is yellow or orange
  const m=await setup(used);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
  const dots=cards(t).map(c=>c.children[0].children[0].backgroundColor);
- assert.deepEqual(dots.map(c=>c.dark),['#5AA9FF','#BF5AF2','#38D6C0']);
- assert.deepEqual(dots.map(c=>c.light),['#2F7FE0','#9B3FD6','#12A594']);
+ assert.deepEqual(dots.map(c=>c.dark),['#B66CFF','#5EA7FF','#48D7C0']);
+ assert.deepEqual(dots.map(c=>c.light),['#8843C2','#286CC4','#087F70']);
  assert.equal(new Set(dots.map(c=>c.dark)).size,3);
  for(const hex of colorStrings(t)){const {h,d}=hsv(hex);if(d>0.12)assert.ok(!(h>=18&&h<=72),'yellow/orange colour '+hex);}
 });
@@ -113,15 +113,17 @@ test('an invalid or missing total never fakes a ratio or a 0% style',async()=>{
   assert.ok(bar.children[0].flex>0);
  }
 });
-test('remaining values render green and used values do not',async()=>{
+test('flow values use their slot accent without changing remaining/used labels',async()=>{
  const m=await setup(remaining);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
  const big=nodes(t).find(n=>n.type==='text'&&n.text==='158.17');
- assert.equal(big.textColor.dark,'#31D05A');
+ assert.equal(big.textColor.dark,'#B66CFF');
+ assert.ok(texts(t).includes('剩余通用流量'));
  const m2=await setup(used);
  const t2=await run({...m2.ctx,env:{VIEW:'all'}});
  const big2=nodes(t2).find(n=>n.type==='text'&&n.text==='407.44');
- assert.notEqual(big2.textColor.dark,'#31D05A');
+ assert.equal(big2.textColor.dark,'#B66CFF');
+ assert.ok(texts(t2).includes('已用通用流量'));
 });
 test('each card shows its flow value exactly once',async()=>{
  const m=await setup(used);
@@ -143,11 +145,11 @@ test('low fee is still emphasised in the summary capsules and normal fee is not'
  const m=mock();for(const p of phones)await capture(m,p);
  m.ctx.http.get=async u=>{m.calls.push({u,o:{}});return {status:200,json:async()=>({code:'Y',feeResource:{feePersent:'2.10',newUnit:'元'},voiceResource:{voicePersent:'56',newUnit:'分钟'},flowResource:used})};};
  const t=await run({...m.ctx,env:{VIEW:'all'}});
- assert.equal(nodes(t).find(n=>n.type==='text'&&n.text==='2.10').textColor.light,'#B83A32');
+ assert.equal(nodes(t).find(n=>n.type==='text'&&n.text==='2.10').textColor.light,'#B83A47');
  const m2=mock();for(const p of phones)await capture(m2,p);
  m2.ctx.http.get=async u=>{m2.calls.push({u,o:{}});return {status:200,json:async()=>({code:'Y',feeResource:{feePersent:'89.30',newUnit:'元'},voiceResource:{voicePersent:'56',newUnit:'分钟'},flowResource:used})};};
  const t2=await run({...m2.ctx,env:{VIEW:'all'}});
- assert.equal(nodes(t2).find(n=>n.type==='text'&&n.text==='89.30').textColor.light,'#1C1C1E');
+ assert.equal(nodes(t2).find(n=>n.type==='text'&&n.text==='89.30').textColor.light,'#8843C2');
 });
 test('summary layout stays within documented DSL and leaks nothing on every home size',async()=>{
  for(const family of ['systemSmall','systemMedium','systemLarge','systemExtraLarge']){
