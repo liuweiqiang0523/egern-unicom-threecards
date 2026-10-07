@@ -146,7 +146,7 @@ const BAR_H=4, SEP_H=2;
 const CARD_RADIUS=16, CARD_GAP=7, TITLE_GAP=2, CARD_PAD=[4,7,4,7];
 const UNIT_MB={KB:1/1024,M:1,MB:1,G:1024,GB:1024,T:1024*1024,TB:1024*1024};
 // thead/ticon: the summary's slim top title bar (text / icon), kept small so the cards get the room.
-const FLOW_SIZES={systemSmall:{name:8,unit:7,title:7,value:8,label:7,tag:5,time:7,icon:6,thead:11,ticon:12,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:7,unit:6,title:5,value:7,label:5,tag:4,time:6,icon:5,thead:12,ticon:13,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:12,unit:10,title:10,value:13,label:10,tag:9,time:9,icon:7,thead:13,ticon:14,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:13,unit:10,title:11,value:14,label:11,tag:10,time:10,icon:8,thead:14,ticon:15,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
+const FLOW_SIZES={systemSmall:{name:8,unit:7,title:7,value:8,label:7,tag:5,time:7,icon:6,thead:11,ticon:12,cpad:[2,6,2,6],fpad:[3,6,3,6],gap:2,fgap:1},systemMedium:{name:7,unit:6,title:5,value:7,label:5,tag:4,time:6,icon:5,thead:12,ticon:13,cpad:[1,6,1,6],fpad:[2,6,2,6],gap:2,fgap:1},systemLarge:{name:12,unit:9,title:9,value:14,label:9,tag:6,time:8,icon:7,thead:13,ticon:14,cpad:[4,9,4,9],fpad:[5,10,5,10],gap:3,fgap:2},systemExtraLarge:{name:13,unit:9,title:10,value:15,label:10,tag:7,time:9,icon:8,thead:14,ticon:15,cpad:[5,10,5,10],fpad:[6,11,6,11],gap:3,fgap:2}};
 // Which resource the API title describes; never inferred from the value itself.
 function flowSemantic(title) {
  if(typeof title!=='string') return 'neutral';
@@ -254,17 +254,26 @@ function compactCard(ctx,result,selection,family,metric) {
  const dot={type:'stack',width:s.icon,height:s.icon,borderRadius:2,backgroundColor:SUMMARY_COLORS[slot],children:[]};
  const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
  const idRow=row([dot,...compactIdentity(alias,lock?'':result.suffix,family,s),spacer(),{...text(time,s.time,SUMMARY_MUTED),minScale:1}],4);
- const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:s.gap,padding:family==='systemMedium'?[0,7,0,7]:CARD_PAD,flex:1,backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[{type:'stack',direction:'column',width:2,height:small?26:family==='systemMedium'?30:80,borderRadius:1,backgroundColor:SUMMARY_COLORS[slot],children:[]},{type:'stack',direction:'column',gap:family==='systemMedium'?1:s.gap,flex:1,children}]});
+ const roomy=family==='systemLarge'||family==='systemExtraLarge';
+ // Reference rows are ~90pt apart at a normalized 402pt screenshot width. Fixed row heights
+ // fence off recursive flex inflation; excess iOS frame height belongs below the whole panel.
+ const cardHeight=family==='systemExtraLarge'?90:86;
+ const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:s.gap,padding:family==='systemMedium'?[0,7,0,7]:roomy?[8,7,8,7]:CARD_PAD,...(roomy?{height:cardHeight}:{flex:1}),backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[{type:'stack',direction:'column',width:2,height:small?26:family==='systemMedium'?30:48,borderRadius:1,backgroundColor:SUMMARY_COLORS[slot],children:[]},{type:'stack',direction:'column',gap:family==='systemMedium'?1:roomy?0:s.gap,flex:1,children}]});
  if(!result.data) return lock?{type:'stack',direction:'column',gap:2,children:[idRow,text(result.status,9,COLORS.accent)]}:block([idRow,text(result.status,small?9:11,COLORS.accent)]);
  const [fee,voice,flow]=result.data;
  if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...compactIdentity(alias,'',family,s),text(flow.value,s.value,COLORS.value,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED)],3)]};
  const feeColor=summaryFeeColor(fee,balanceThreshold(ctx.env?.LOW_BALANCE_THRESHOLD),slot);
  const valueColor=SUMMARY_COLORS[slot];
- const column=(d,color,badge=false)=>({type:'stack',direction:'column',flex:1,gap:s.fgap,children:[...(badge&&family==='systemMedium'?[row([text(d.title,s.label,SUMMARY_MUTED,'medium'),chip('不限量',s)],2)]:[text(d.title,s.label,SUMMARY_MUTED,'medium')]),row([text(d.value,s.value,color,'semibold'),text(d.unit,s.unit,SUMMARY_MUTED)],2),...(badge&&family!=='systemMedium'?[chip('不限量',s)]:[])]});
+ const column=(d,color,badge=false)=>({type:'stack',direction:'column',flex:1,gap:s.fgap,children:[...(badge&&family==='systemMedium'?[row([text(d.title,s.label,SUMMARY_MUTED,'medium'),chip('不限量',s)],2)]:[text(d.title,s.label,SUMMARY_MUTED,'medium')]),row([text(d.value,s.value,color,'semibold'),text(d.unit,s.unit,SUMMARY_MUTED),...(badge&&roomy?[{...chip('不限量',s),padding:[1,3,1,3]}]:[])],2)]});
  // Small widgets keep the three identities and exact flow values, without cramming nine metrics.
  const metrics=small?row([text(flow.title,s.title,SUMMARY_MUTED),spacer(),text(flow.value,s.value,valueColor,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED)],2):row([column(fee,feeColor),column(voice,SUMMARY_INK),column(flow,valueColor,metric.unlimited)],6);
  const bottom={type:'stack',direction:'column',height:metric.unlimited?Math.max(BAR_H,s.tag*1.3):metric.ratio===null?SEP_H:BAR_H,children:[flowBar(slot,metric,s)]};
- if(!small){metrics.alignItems='start';metrics.height=s.label*1.3+s.value*1.3+s.fgap+(metric.unlimited&&family!=='systemMedium'?s.tag*1.3+2+s.fgap:0);}
+ if(!small){metrics.alignItems='start';metrics.height=s.label*1.3+s.value*1.3+s.fgap;}
+ if(roomy){
+  idRow.height=s.name*1.3;
+  // Explicit gaps, not a floor-pinning spacer: title → metrics → bar keep the same rhythm.
+  return block([idRow,{type:'stack',height:8,children:[]},metrics,{type:'stack',height:6,children:[]},bottom]);
+ }
  return block([idRow,metrics,spacer(),bottom]);
 }
 // Decide each card's bar: unlimited (no total + "已用" label) fades out; a configured total gives a
@@ -317,11 +326,12 @@ async function compactWidget(ctx) {
  const s=FLOW_SIZES[family]||FLOW_SIZES.systemMedium;
  const titleBar=title?[{type:'stack',direction:'row',alignItems:'center',gap:3,padding:[0,0,0,0],children:[{type:'image',src:ICON_SRC,color:{light:'#C82E40',dark:'#E84353'},width:s.ticon,height:s.ticon,borderRadius:3,resizeMode:'contain'},text(title,s.thead,COLORS.value,'semibold'),spacer()]}]:[];
  const cardList=order.map(i=>compactCard(ctx,results[i],i+1,family,metrics[i]));
- // The title bar sits tight above the cards (TITLE_GAP) and stays at its natural height; the holder
- // is the one flexible child, so the freed space goes to the three cards (each flex:1) instead of
- // puffing up the heading.
- const children=titleBar.length?[titleBar[0],{type:'stack',direction:'column',gap:CARD_GAP,flex:1,children:cardList}]:cardList;
- return {...widget(children,enabled(ctx.env?.TRANSLUCENT)),backgroundColor:enabled(ctx.env?.TRANSLUCENT)?{light:'#F3F4F6B3',dark:'#17181BB3'}:SUMMARY_BG,padding:lock?4:small?6:family==='systemMedium'?6:family==='systemLarge'?7:8,gap:lock?2:titleBar.length?TITLE_GAP:CARD_GAP};
+ // Large rows stay at reference proportions rather than stretching to fill a system widget.
+ // Medium/small retain their compact budget; the header never contains flex.
+ const roomy=family==='systemLarge'||family==='systemExtraLarge';
+ const holder={type:'stack',direction:'column',gap:CARD_GAP,...(roomy?{height:3*(family==='systemExtraLarge'?90:86)+2*CARD_GAP}:{flex:1}),children:cardList};
+ const children=roomy?[...titleBar,holder,spacer()]:titleBar.length?[titleBar[0],holder]:cardList;
+ return {...widget(children,enabled(ctx.env?.TRANSLUCENT)),backgroundColor:enabled(ctx.env?.TRANSLUCENT)?{light:'#F3F4F6B3',dark:'#17181BB3'}:SUMMARY_BG,padding:lock?4:small?6:family==='systemMedium'?6:family==='systemLarge'?7:8,gap:lock?2:roomy?6:titleBar.length?TITLE_GAP:CARD_GAP};
 }
 export default async function(ctx) {
  if(ctx.request) {capture(ctx);return;}

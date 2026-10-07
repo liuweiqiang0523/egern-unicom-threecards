@@ -15,7 +15,7 @@ const localSrc=src=>String(src).includes('unicom-icon.png')?'../assets/unicom-ic
 // Egern hands a widget child the leftover height when that child's subtree contains `flex` (a spacer
 // does NOT hoist). Emulate that here so the browser layout matches the phone instead of auto-sizing.
 const hasFlex=n=>!!(n&&n.flex)||((n&&n.children)||[]).some(hasFlex);
-const FRAME={systemSmall:[158,158],systemMedium:[338,158],systemLarge:[338,354],systemExtraLarge:[500,354],accessoryRectangular:[170,76],accessoryCircular:[76,76],accessoryInline:[338,26]};
+const FRAME={systemSmall:[158,158],systemMedium:[338,158],systemLarge:[338,344],systemExtraLarge:[500,354],accessoryRectangular:[170,76],accessoryCircular:[76,76],accessoryInline:[338,26]};
 function render(n,vertical){
  const e=document.createElement('div');e.style.boxSizing='border-box';
  if(n.type==='image'){const sz=n.width||15;

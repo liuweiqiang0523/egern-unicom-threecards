@@ -19,7 +19,8 @@ for(const family of ['systemMedium','systemLarge','systemExtraLarge']) test('thr
   const [rail,content]=card.children;
   assert.equal(card.direction,'row');assert.equal(rail.width,2);assert.equal(rail.children.length,0);
   assert.equal(rail.backgroundColor.dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
-  const [header,metrics,space,bottom]=content.children;
+  const roomy=family!=='systemMedium';
+  const header=content.children[0],metrics=content.children[roomy?2:1],bottom=content.children.at(-1);
   assert.equal(hasFlex(header),false,'identity must not absorb remaining card height');
   assert.equal(header.children.at(-1).text,new Date(records[i].updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}));
   assert.equal(metrics.children.length,3);assert.equal(metrics.direction,'row');
@@ -30,7 +31,17 @@ for(const family of ['systemMedium','systemLarge','systemExtraLarge']) test('thr
    assert.equal(col.children[1].children[1].text,records[i].data[j].unit);
   });
   assert.equal(nodes(card).filter(n=>n.text===records[i].data[2].value).length,1);
-  assert.equal(space.type,'spacer');assert.equal(bottom.children.length,1);
+  if(roomy){
+   assert.equal(card.height,family==='systemLarge'?86:90);assert.ok(!card.flex);
+   assert.equal(rail.height,48);assert.equal(card.padding[0],8);
+   assert.equal(content.children[1].height,8);assert.equal(content.children[3].height,6);
+   assert.ok(!content.children.some(n=>n.type==='spacer'),'no floor-pinned whitespace');
+   const col=metrics.children[2];assert.ok(col.children[1].children[0].font.size>header.children[1].font.size);
+   assert.ok(header.children[1].font.size>col.children[0].font.size);
+   assert.ok(col.children[0].font.size>header.children.at(-1).font.size);
+   if(nodes(col).some(n=>n.text==='不限量'))assert.equal(col.children[1].children.at(-1).children[0].text,'不限量');
+  }else assert.equal(content.children[2].type,'spacer');
+  assert.equal(bottom.children.length,1);
  });
  assert.equal(m.calls.length,3);assert.deepEqual([1,2,3].map(i=>m.ctx.storage.getJSON('egern.unicom3.v1.slot.'+i)),records);
 });

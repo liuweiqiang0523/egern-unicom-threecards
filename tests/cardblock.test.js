@@ -12,7 +12,7 @@ test('every home summary card is one neutral rounded block with a 1px outline an
  for(const family of ['systemSmall','systemMedium','systemLarge','systemExtraLarge']){
   const m=mock();for(const p of phones)await capture(m,p);
   const t=await run({...m.ctx,widgetFamily:family,env:{VIEW:'all'}});
-  assert.equal(t.gap,2,family+' title gap');
+  assert.equal(t.gap,['systemLarge','systemExtraLarge'].includes(family)?6:2,family+' title gap');
   assert.equal(cardHolder(t).gap,7,family+' card gap');
   assert.equal(cards(t).length,3,family);
   cards(t).forEach((card,i)=>{
