@@ -9,6 +9,10 @@ test('neutral summary surfaces, severity-only fee colors and 4pt theme bars pres
  m.ctx.http.get=async u=>{const i=phones.findIndex(p=>u.includes(p));return {status:200,json:async()=>({code:'Y',feeResource:{feePersent:fee[i],newUnit:'元',dynamicFeeTitle:'剩余话费'},voiceResource:{voicePersent:String(789+i),newUnit:'分钟'},flowResource:{flowPersent:flow[i],newUnit:'GB',dynamicFlowTitle:i?'已用通用流量':'剩余通用流量'}})};};
  const t=await run({...m.ctx,widgetFamily:'systemLarge',env:{VIEW:'all'}});
  assert.equal(t.backgroundColor.dark,'#17181B');
+ assert.equal(t.children[0].children[0].color.dark,'#E84353');
+ const badges=nodes(t).filter(n=>n.borderRadius===6&&n.children?.[0]?.text==='不限量');
+ assert.equal(badges.length,2);
+ for(const badge of badges){assert.equal(badge.backgroundColor.dark,'#292B30');assert.equal(badge.children[0].textColor.dark,'#C2C6CE');assert.equal(badge.children[0].font.size,9);}
  cards(t).forEach((c,i)=>{
   assert.equal(c.backgroundColor.dark,'#1D1F23');assert.equal(c.borderColor.dark,'#292B30');
   assert.equal(c.children.length,3);assert.equal(c.children[1].children.length,2);

@@ -210,7 +210,7 @@ function lowBalance(d,threshold) {return threshold>0&&d.unit==='元'&&Number(d.v
 function capsule(d,index,center=false,warning=false) {
  return {type:'stack',direction:'column',alignItems:'center',...(center?{}:{flex:1}),padding:[7,center?20:8,7,center?20:8],gap:3,backgroundColor:warning?WARNING.background:CAPSULE_COLORS[index],borderRadius:14,children:[text(d.title,10,{light:'#51515A',dark:'#D8D8DF'},'medium'),row([text(d.value,22,warning?WARNING.value:COLORS.value,'semibold'),text(d.unit,10,COLORS.muted)],3)]};
 }
-function chip(label,s) {return {type:'stack',direction:'row',alignItems:'center',padding:[1,6,1,6],borderRadius:6,backgroundColor:CHIP_BG,children:[text(label,s.tag,COLORS.muted,'medium')]};}
+function chip(label,s) {return {type:'stack',direction:'row',alignItems:'center',padding:[1,6,1,6],borderRadius:6,backgroundColor:{light:'#E6E8EC',dark:'#292B30'},children:[text(label,s.tag,{light:'#626975',dark:'#C2C6CE'},'medium')]};}
 // Summary resources use neutral surfaces; hue is confined to status marks and key values.
 function miniCapsule(d,slot,s,valueColor=SUMMARY_INK) {
  return {type:'stack',direction:'row',alignItems:'center',flex:1,gap:3,padding:s.cpad,backgroundColor:slotTint(slot),borderRadius:10,children:[text(d.title,s.label,SUMMARY_MUTED,'medium'),text(d.value,s.value,valueColor,'semibold'),text(d.unit,s.unit,SUMMARY_MUTED)]};
@@ -315,7 +315,7 @@ async function compactWidget(ctx) {
  // aligned without ever absorbing vertical space.
  const title=lock?'':safeTitle(ctx.env?.WIDGET_TITLE,brandHidden(ctx.env?.SHOW_BRAND)?'':'中国联通');
  const s=FLOW_SIZES[family]||FLOW_SIZES.systemMedium;
- const titleBar=title?[{type:'stack',direction:'row',alignItems:'center',gap:3,padding:[0,0,0,0],children:[{type:'image',src:ICON_SRC,width:s.ticon,height:s.ticon,borderRadius:3,resizeMode:'contain'},text(title,s.thead,COLORS.value,'semibold'),spacer()]}]:[];
+ const titleBar=title?[{type:'stack',direction:'row',alignItems:'center',gap:3,padding:[0,0,0,0],children:[{type:'image',src:ICON_SRC,color:{light:'#C82E40',dark:'#E84353'},width:s.ticon,height:s.ticon,borderRadius:3,resizeMode:'contain'},text(title,s.thead,COLORS.value,'semibold'),spacer()]}]:[];
  const cardList=order.map(i=>compactCard(ctx,results[i],i+1,family,metrics[i]));
  // The title bar sits tight above the cards (TITLE_GAP) and stays at its natural height; the holder
  // is the one flexible child, so the freed space goes to the three cards (each flex:1) instead of
