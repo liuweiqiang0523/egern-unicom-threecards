@@ -170,8 +170,16 @@ A 轻量账单（**单卡**组件）：顶部卡身份及按卡槽固定配色�
 
 DSL：[Egern Widgets 官方文档](https://egernapp.com/docs/configuration/widgets/)。本地验证：`npm run check && npm test`；YAML 用 Ruby 标准库解析。GitHub Actions 自动执行相同检查。
 
+### 连接失败的排查边界
+
+`连接失败` 只表示 Egern 的 HTTP 调用在取得响应前拒绝，不能据此判定 Cookie 失效、DNS/TLS/超时或并发故障。`有效缓存` 不会发送请求，因此第三卡显示它不证明当前第三卡网络正常。
+
+本版按官方契约将 `redirect:error` 改为 `redirect:manual`：仍不跟随任何跳转、不读取 Location、不向跳转目标发送 Cookie，但可将原先混在连接失败中的重定向显示为 `HTTP301/302/307/308` 等状态。它是安全的诊断修正，**不是已证实两卡恢复的网络修复**；请求超时仍为8秒，不添加盲目重试、不关闭TLS校验、不清空缓存或凭据，已认可布局完全不改。
+
+升级后在 Egern 内刷新一次并查看两张失败卡的状态：若仍为连接失败，需要在本机检查该次请求的原生失败类别（超时／DNS／TLS等），只反馈类别和卡槽，不发送含请求URL、号码或Cookie的原始日志；若变成HTTP3xx，只反馈状态码。不要因连接失败直接重抓三张卡。Mac 的无Cookie接口探测只验证Mac到该端点，不能替代iPhone账号请求实测。
+
 ### 可选本机诊断（不要分享凭据）
 
-无需新 Env。JS 导出 `BUILD_ID=continuous-left-outline-diagnostics-v1` 和 `queryDiagnostic(ctx, 1|2|3)` 供本机开发检查；后者沿用正常查询／缓存／失效行为，**不是只读探针**。如需反馈，只摘录 build、卡槽序号、`source`、`reason`、`httpStatus`、`updatedAt`；不要发整个返回对象、storage、请求、响应或日志（返回数据可能包含私人余额）。source 仅 network/fresh_cache/fallback_cache；reason 仅 HTTP/JSON/DATA/TRANSPORT/STORAGE/AUTH/API/UNKNOWN，httpStatus仅合法数字100–599。没有原始异常、URL、响应正文、完整号码或Cookie。首次待捕获／已失效／凭据轮换提前返回不伪造查询来源。手机曾出现的旧时间差异仍不能反推具体根因。
+无需新 Env。JS 导出 `BUILD_ID=safe-manual-redirect-diagnostics-v2` 和 `queryDiagnostic(ctx, 1|2|3)` 供本机开发检查；后者沿用正常查询／缓存／失效行为，**不是只读探针**。如需反馈，只摘录 build、卡槽序号、`source`、`reason`、`httpStatus`、`updatedAt`；不要发整个返回对象、storage、请求、响应或日志（返回数据可能包含私人余额）。source 仅 network/fresh_cache/fallback_cache；reason 仅 HTTP/JSON/DATA/TRANSPORT/STORAGE/AUTH/API/UNKNOWN，httpStatus仅合法数字100–599。没有原始异常、URL、响应正文、完整号码或Cookie。首次待捕获／已失效／凭据轮换提前返回不伪造查询来源。手机曾出现的旧时间差异仍不能反推具体根因。
 
 更新远程模块后也须更新关联远程JS；若采用本地JS，则重新下载并替换本地文件，单更新模块不会替换它。不清空storage、不重新抓卡。核对JS内BUILD_ID及每卡来源文字，以区分实际运行版本。浏览器设计预览不证明iPhone原生圆角或字体已验收。

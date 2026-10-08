@@ -69,7 +69,8 @@ async function load(ctx,slot) {
  let reason='TRANSPORT',httpStatus;
  try {
   const resp=await ctx.http.get(API+'?version=iphone_c@10.0100&desmobiel='+encodeURIComponent(phone)+'&showType=0',{
-   timeout:8000,redirect:'error',credentials:'omit',insecureTls:false,
+   // Manual exposes the redirect status without following it or sending credentials elsewhere.
+   timeout:8000,redirect:'manual',credentials:'omit',insecureTls:false,
    headers:{'User-Agent':'ChinaUnicom.x CFNetwork iOS/16.3',Cookie:record.cookie}
   });
   httpStatus=Number.isInteger(resp?.status)&&resp.status>=100&&resp.status<=599?resp.status:undefined;
@@ -102,7 +103,7 @@ async function load(ctx,slot) {
  }
 }
 // Optional local inspection: returns safe data/source/reason only, never credentials.
-export const BUILD_ID='continuous-left-outline-diagnostics-v1';
+export const BUILD_ID='safe-manual-redirect-diagnostics-v2';
 export const queryDiagnostic=(ctx,slot)=>[1,2,3].includes(slot)?load(ctx,slot):Promise.resolve({status:'无效卡槽',reason:'UNKNOWN'});
 function queryLabel(result) {
  if(result.source==='fresh_cache') return '有效缓存';

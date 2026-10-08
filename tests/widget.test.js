@@ -10,7 +10,7 @@ test('configured phone and cookie are captured as one account record',async()=>{
 test('three cards query their own cookies and render private independent capsules',async()=>{
  const m=mock(); for(let i=0;i<3;i++) await capture(m,phones[i],'mock-session='+i);
  const w=await renderAll(m); assert.ok(w.every(x=>x.type==='widget')); assert.equal(m.calls.length,3);
- for(let i=0;i<3;i++){assert.equal(new URL(m.calls[i].u).searchParams.get('desmobiel'),phones[i]);assert.equal(m.calls[i].o.headers.Cookie,'mock-session='+i);assert.equal(m.calls[i].o.redirect,'error');assert.equal(m.calls[i].o.credentials,'omit');}
+ for(let i=0;i<3;i++){assert.equal(new URL(m.calls[i].u).searchParams.get('desmobiel'),phones[i]);assert.equal(m.calls[i].o.headers.Cookie,'mock-session='+i);assert.equal(m.calls[i].o.redirect,'manual');assert.equal(m.calls[i].o.credentials,'omit');}
  const text=w.map(renderedText).join(''); for(const p of phones) {assert.ok(!text.includes(p));assert.ok(text.includes('卡'+(phones.indexOf(p)+1)));}
  assert.ok(text.includes('12.34元')); await renderAll(m);assert.equal(m.calls.length,3,'fresh cache avoids repeated queries');
 });

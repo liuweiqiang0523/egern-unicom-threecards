@@ -48,7 +48,7 @@ for(const family of ['systemMedium','systemLarge','systemExtraLarge']) test('thr
 test('intentional diagnostic prefix and status-only single-card migration; flow metrics and bar remain byte-identical',()=>{
  const after=readFileSync('UnicomThreeCards.js','utf8');
  const hash=s=>createHash('sha256').update(s).digest('hex');
- for(const [a,b,want] of [['prefix',"// Egern's documented",'648cb852e5514623bc735c7359bb246750585505b2639bd0b4ba5eb37121171e'],['function flowBar','function balanceThreshold','5eb0c4fc0ccb08585230c38ee4cb9b6d8fdebc50964e7796a37401541c268c20'],['function flowMetrics','async function compactWidget','de21b19e29f61a47fb1caf405df6bedc4559e46a01e10ee65fcb125d9d652315'],['export default async function',null,'785414b25451ea67f5057e07259550d129cd258621f03cbf0ad9a9b8f2c1d14f']]){
+ for(const [a,b,want] of [['prefix',"// Egern's documented",'fa0eff1161e3775da9be87df28559a5bd206236b5ac41b76986b85c47e7bb384'],['function flowBar','function balanceThreshold','5eb0c4fc0ccb08585230c38ee4cb9b6d8fdebc50964e7796a37401541c268c20'],['function flowMetrics','async function compactWidget','de21b19e29f61a47fb1caf405df6bedc4559e46a01e10ee65fcb125d9d652315'],['export default async function',null,'785414b25451ea67f5057e07259550d129cd258621f03cbf0ad9a9b8f2c1d14f']]){
   const chunk=a==='prefix'?after.slice(0,after.indexOf(b)):after.slice(after.indexOf(a),b?after.indexOf(b):undefined);
   assert.equal(hash(chunk),want,a);
  }

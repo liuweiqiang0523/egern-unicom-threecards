@@ -30,7 +30,7 @@ test('all isolates one auth failure and never mixes cookies',async()=>{
  const tree=await run({...m.ctx,env:{CARD_SLOT:'all',SHOW_PHONE_SUFFIX:'true'}}),s=texts(tree).join('|');
  assert.equal(peak,3);assert.equal(cards(tree).length,3);
  assert.ok(s.includes('登录失效'));assert.equal(texts(tree).filter(t=>t==='已用流量').length,2);assert.equal(texts(tree).filter(t=>t==='123456789.1234').length,2);
- seen.forEach(([u,o],i)=>{assert.ok(u.includes(phones[i]));assert.equal(o.headers.Cookie,'mock='+i);assert.equal(o.timeout,8000);assert.equal(o.redirect,'error');});
+ seen.forEach(([u,o],i)=>{assert.ok(u.includes(phones[i]));assert.equal(o.headers.Cookie,'mock='+i);assert.equal(o.timeout,8000);assert.equal(o.redirect,'manual');});
  for(const phone of phones) assert.ok(!JSON.stringify(tree).includes(phone));
  assert.equal(m.ctx.storage.getJSON('egern.unicom3.v1.slot.2').invalid,true);
 });
