@@ -243,6 +243,20 @@ function compactIdentity(alias,suffix,family,s) {
  if(suffix) parts.push({...text('· '+suffix,s.name-2,COLORS.value,'medium'),minScale:1});
  return parts;
 }
+// Quarter-point scan conversion of the INSIDE of the 16pt card outline (1pt border).
+// Each strip is fully contained in the 12pt gutter: no clipping/overflow/overlay API needed.
+// Adaptive colors remain native Colors; PNG/SVG tinting is not assumed by the image DSL.
+function contourCorner(color,bottom=false) {
+ const step=0.25,r=15,inner=12,width=12;
+ return {type:'stack',direction:'row',width,height:r,gap:0,alignItems:'start',children:Array.from({length:width/step},(_,i)=>{
+  // Conservative strip bounds keep every colored point inside the outer circular boundary.
+  const x=i*step,dx=r-x;
+  const top=r-Math.sqrt(Math.max(0,r*r-dx*dx));
+  const end=x+step<r-inner?r:r-Math.sqrt(Math.max(0,inner*inner-(r-x-step)**2));
+  const alpha=Math.round(255*Math.min(1,(width-x-step)/2)).toString(16).padStart(2,'0');
+  return {type:'stack',direction:'column',width:step,height:r,padding:[bottom?r-end:top,0,0,0],children:end>top?[{type:'stack',width:step,height:end-top,backgroundColor:{light:color.light+alpha,dark:color.dark+alpha},children:[]}]:[]};
+ })};
+}
 // Three-column reference layout: identity/time, fee + voice + flow, bottom bar.
 // A narrow documented stack rail marks the slot; no tinted metric capsules.
 function compactCard(ctx,result,selection,family,metric) {
@@ -258,17 +272,17 @@ function compactCard(ctx,result,selection,family,metric) {
  const roomy=family==='systemLarge'||family==='systemExtraLarge';
  // Roomy cards share the actual widget height; fixed identity/metrics fence recursive flex.
  // Remaining room belongs to explicit breathing slots, never the title or metric-to-bar gap.
- // Move padding to the content, preserving its exact x/y coordinates. The rail now touches
- // the left border; transparent corner ends keep it inside the rounded outline without clipping APIs.
+ // Move the curved rail into the existing content gutter without shifting any text.
+ // The 15pt inner radius follows the 16pt card's 1pt outline; every strip stays inside it.
  const pad=family==='systemMedium'?[0,7,0,7]:roomy?[6,8,6,8]:CARD_PAD;
  const railHeight=small?26:30;
  const railColor={light:['#713FB8','#286FC2','#147D70'][slot],dark:SUMMARY_COLORS[slot].dark};
- const rail=roomy?{type:'stack',direction:'column',width:3,gap:0,alignItems:'start',children:[
-  {type:'stack',width:3,height:12,backgroundGradient:{type:'linear',colors:[{light:railColor.light+'00',dark:railColor.dark+'00'},railColor],startPoint:{x:0.5,y:0},endPoint:{x:0.5,y:1}},children:[]},
+ const rail=roomy?{type:'stack',direction:'column',width:12,gap:0,alignItems:'start',children:[
+  contourCorner(railColor),
   {type:'stack',width:3,flex:1,backgroundColor:railColor,children:[]},
-  {type:'stack',width:3,height:12,backgroundGradient:{type:'linear',colors:[railColor,{light:railColor.light+'00',dark:railColor.dark+'00'}],startPoint:{x:0.5,y:0},endPoint:{x:0.5,y:1}},children:[]}
+  contourCorner(railColor,true)
  ]}:{type:'stack',direction:'column',width:2,height:railHeight,borderRadius:1,backgroundGradient:{type:'linear',colors:[{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'},SUMMARY_COLORS[slot],{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'}],stops:[0,0.5,1],startPoint:{x:0.5,y:0},endPoint:{x:0.5,y:1}},children:[]};
- const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:0,padding:0,flex:1,backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[rail,{type:'stack',direction:'column',padding:[pad[0],pad[1],pad[2],pad[3]+s.gap-(roomy?1:0)],gap:family==='systemMedium'?1:roomy?0:s.gap,flex:1,children}]});
+ const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:0,padding:0,flex:1,backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[rail,{type:'stack',direction:'column',padding:[pad[0],pad[1],pad[2],pad[3]+s.gap-(roomy?10:0)],gap:family==='systemMedium'?1:roomy?0:s.gap,flex:1,children}]});
  if(!result.data) return lock?{type:'stack',direction:'column',gap:2,children:[idRow,text(result.status,9,COLORS.accent)]}:block([idRow,text(result.status,small?9:11,COLORS.accent)]);
  const [fee,voice,flow]=result.data;
  if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...compactIdentity(alias,'',family,s),text(flow.value,s.value,COLORS.value,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED)],3)]};

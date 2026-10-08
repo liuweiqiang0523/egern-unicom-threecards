@@ -10,7 +10,7 @@ test('accepted large title shrinks only brand; full-edge rail preserves content 
   const t=await run({...m.ctx,widgetFamily:family,env:{VIEW:'all',SHOW_PHONE_SUFFIX:'true'}});
   assert.equal(t.children[0].children[1].font.size,font);assert.equal(t.children[0].children[0].width,icon);
   assert.ok(nodes(t.children[0]).every(n=>!n.flex));
-  cards(t).forEach((c,i)=>{assert.equal(c.height,undefined);assert.equal(c.flex,1);assert.equal(c.padding,0);assert.equal(c.gap,0);assert.equal(c.children[0].height,undefined);assert.equal(c.children[0].width,3);assert.deepEqual(c.children[1].padding,[6,8,6,10]);assert.equal(c.children[1].children[0].children[1].font.size,family==='systemLarge'?13:14);assert.ok(nodes(c).some(n=>n.text==='· '+phones[i].slice(-4)));assert.ok(nodes(c).every(n=>!n.text?.includes('尾号')&&!n.text?.includes(phones[i])));});
+  cards(t).forEach((c,i)=>{assert.equal(c.height,undefined);assert.equal(c.flex,1);assert.equal(c.padding,0);assert.equal(c.gap,0);assert.equal(c.children[0].height,undefined);assert.equal(c.children[0].width,12);assert.deepEqual(c.children[1].padding,[6,8,6,1]);assert.equal(c.children[1].children[0].children[1].font.size,family==='systemLarge'?13:14);assert.ok(nodes(c).some(n=>n.text==='· '+phones[i].slice(-4)));assert.ok(nodes(c).every(n=>!n.text?.includes('尾号')&&!n.text?.includes(phones[i])));});
  }
 });
 test('failed account keeps original timestamp plus cache marker; healthy account has neither marker nor rewritten time',async()=>{

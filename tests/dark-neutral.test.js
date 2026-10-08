@@ -15,7 +15,7 @@ test('neutral summary surfaces, severity-only fee colors and 4pt theme bars pres
  for(const badge of badges){assert.equal(badge.backgroundColor.dark,'#292B30');assert.equal(badge.children[0].textColor.dark,'#C2C6CE');assert.equal(badge.children[0].font.size,6);}
  cards(t).forEach((c,i)=>{
   assert.equal(c.backgroundColor.dark,'#1D1F23');assert.equal(c.borderColor.dark,'#292B30');
-  assert.equal(c.children.length,2);assert.equal(c.children[0].width,3);
+  assert.equal(c.children.length,2);assert.equal(c.children[0].width,12);
   assert.equal(c.children[1].children[2].children.length,5);
   assert.ok(c.children[1].children[2].children.filter(n=>n.direction==='column').every(n=>!n.backgroundColor));
   const all=nodes(c);assert.equal(all.find(n=>n.text===fee[i]).textColor.dark,['#ECEEF2','#FF5C68','#D99A70'][i]);

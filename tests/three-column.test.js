@@ -18,7 +18,7 @@ for(const family of ['systemMedium','systemLarge','systemExtraLarge']) test('thr
  cards(t).forEach((card,i)=>{
   const [rail,content]=card.children;
   const roomy=family!=='systemMedium';
-  assert.equal(card.direction,'row');assert.equal(rail.width,roomy?3:2);
+  assert.equal(card.direction,'row');assert.equal(rail.width,roomy?12:2);
   assert.equal(roomy?rail.children[1].backgroundColor.dark:rail.backgroundGradient.colors[1].dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
   const header=content.children[0],metrics=content.children[roomy?2:1],bottom=content.children[roomy?4:3];
   assert.equal(hasFlex(header),false,'identity must not absorb remaining card height');
@@ -33,7 +33,7 @@ for(const family of ['systemMedium','systemLarge','systemExtraLarge']) test('thr
   assert.equal(nodes(card).filter(n=>n.text===records[i].data[2].value).length,1);
   if(roomy){
    assert.equal(card.height,undefined);assert.equal(card.flex,1);
-   assert.equal(rail.height,undefined);assert.equal(card.padding,0);assert.deepEqual(content.padding,[6,8,6,10]);
+   assert.equal(rail.height,undefined);assert.equal(card.padding,0);assert.deepEqual(content.padding,[6,8,6,1]);
    assert.equal(content.children[1].flex,1);assert.equal(content.children[1].children[0].height,7);assert.equal(content.children[3].height,5);assert.equal(content.children[5].flex,1);
    assert.ok(!content.children.some(n=>n.type==='spacer'),'no floor-pinned whitespace');
    const col=metrics.children[4];assert.ok(col.children[1].children[0].font.size>header.children[1].font.size);
