@@ -274,7 +274,8 @@ function compactCard(ctx,result,selection,family,metric) {
  const time=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'--:--';
  const cached=!!result.data&&result.status!=='已更新';
  const clock=result.data?time+' · '+queryLabel(result):time;
- const idRow=row([dot,...compactIdentity(alias,lock?'':result.suffix,family,s),spacer(),{...text(clock,s.time,cached?{light:'#8A6243',dark:'#D99A70'}:SUMMARY_MUTED),minScale:0.55}],4);
+ const displayAlias=cached?Array.from(alias).slice(0,result.suffix?6:8).join(''):alias;
+ const idRow=row([dot,...compactIdentity(displayAlias,lock?'':result.suffix,family,s),spacer(),{...text(clock,s.time,cached?{light:'#8A6243',dark:'#D99A70'}:SUMMARY_MUTED),minScale:0.55}],4);
  const roomy=family==='systemLarge'||family==='systemExtraLarge';
  // Roomy cards share the actual widget height; fixed identity/metrics fence recursive flex.
  // Remaining room belongs to explicit breathing slots, never the title or metric-to-bar gap.
