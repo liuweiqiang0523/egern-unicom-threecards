@@ -19,24 +19,29 @@ try{
   await page.selectOption('#family',family);await page.locator('#dark').setChecked(dark);await page.waitForTimeout(30);
   for(const height of heights){
    await page.locator('#preview').evaluate((e,h)=>e.style.height=h+'px',height);
-   const v=await page.evaluate(()=>{const root=document.querySelector('#preview').firstElementChild;const box=e=>{if(!e)return null;const b=e.getBoundingClientRect();return {top:b.top,bottom:b.bottom,left:b.left,right:b.right,height:b.height,width:b.width}};const cs=[...root.querySelectorAll('div')].filter(e=>e.style.borderRadius==='16px');return {root:box(root),overflow:root.scrollHeight-root.clientHeight,textOverflow:[...root.querySelectorAll('[data-type="text"]')].filter(e=>e.scrollWidth>e.clientWidth+1).map(e=>e.textContent),cards:cs.map(c=>{const content=c.children[1];return {card:box(c),rail:box(c.children[0]),id:box(content.children[0]),metrics:box(content.children[2]),bar:box(content.children[4]),textOutside:[...c.querySelectorAll('[data-type="text"]')].filter(e=>{const x=box(e),b=box(c);return x.top<b.top||x.bottom>b.bottom+1}).map(e=>e.textContent)}})};});
+   const v=await page.evaluate(()=>{const root=document.querySelector('#preview').firstElementChild;const box=e=>{if(!e)return null;const b=e.getBoundingClientRect();return {top:b.top,bottom:b.bottom,left:b.left,right:b.right,height:b.height,width:b.width}};const cs=[...root.querySelectorAll('div')].filter(e=>e.style.borderRadius==='16px');return {root:box(root),overflow:root.scrollHeight-root.clientHeight,textOverflow:[...root.querySelectorAll('[data-type="text"]')].filter(e=>e.scrollWidth>e.clientWidth+1).map(e=>e.textContent),cards:cs.map(c=>{const content=c.children.length===1?c.children[0].children[0]:c.children[1];return {card:box(c),rail:box(c.children[0]),id:box(content.children[0]),metrics:box(content.children[2]),bar:box(content.children[4]),textOutside:[...c.querySelectorAll('[data-type="text"]')].filter(e=>{const x=box(e),b=box(c);return x.top<b.top||x.bottom>b.bottom+1}).map(e=>e.textContent)}})};});
    if(family==='systemLarge'||family==='systemExtraLarge'){
     assert.equal(v.cards.length,3);assert.ok(v.overflow<=1,JSON.stringify(v));assert.deepEqual(v.textOverflow,[]);
-    const contour=await page.evaluate(()=>[...document.querySelectorAll('#preview div')].filter(e=>e.style.borderRadius==='16px').map(card=>{
-     const rail=card.children[0],r=rail.getBoundingClientRect();let painted=0,escaped=0;
-     for(const [index,corner] of [...rail.children].entries())if(index!==1)for(const strip of corner.children){const ink=strip.firstElementChild;if(!ink)continue;const b=ink.getBoundingClientRect();for(const x of [b.left+.001,b.right-.001])for(const y of [b.top+.001,b.bottom-.001]){const localY=index===0?y-r.top:r.bottom-y;if((x-r.left-15)**2+(localY-15)**2>225+.8)escaped++;}painted++;}
-     return {painted,escaped};
-    }));
-    assert.equal(contour.length,3);for(const c of contour){assert.ok(c.painted>80);assert.equal(c.escaped,0,'paint must remain inside rounded contour without clipping');}
-    const h=v.cards[0].card.height;for(const c of v.cards){assert.ok(Math.abs(c.card.height-h)<.1);assert.ok(Math.abs(c.rail.height-(c.card.height-2))<.1);assert.ok(c.id.bottom<=c.metrics.top);assert.ok(Math.abs(c.bar.top-c.metrics.bottom-5)<.1);assert.deepEqual(c.textOutside,[]);}
+    // Rounded inner surface fills the shell; content keeps the accepted compact rhythm.
+    const h=v.cards[0].card.height;for(const c of v.cards){assert.ok(Math.abs(c.card.height-h)<.1);assert.ok(Math.abs(c.rail.height-(c.card.height-4))<.1);assert.ok(Math.abs(c.rail.top-c.card.top-2)<.1);assert.ok(Math.abs(c.rail.bottom-c.card.bottom+2)<.1);assert.ok(Math.abs(c.metrics.top-c.id.bottom-8)<.1);assert.ok(c.id.bottom<=c.metrics.top);assert.ok(Math.abs(c.bar.top-c.metrics.bottom-5)<.1);assert.deepEqual(c.textOutside,[]);}
     assert.ok(Math.abs(v.root.bottom-v.cards[2].card.bottom-(family==='systemLarge'?7:8))<.1);
     for(let i=1;i<3;i++)assert.ok(Math.abs(v.cards[i].card.top-v.cards[i-1].card.bottom-7)<.1);
    }
-   checks.push({family,dark,height,overflow:v.overflow,cardHeights:v.cards.map(c=>c.card.height),textOverflow:v.textOverflow});
+   if(process.env.PREVIEW_OUT&&['systemLarge','systemExtraLarge'].includes(family))await page.locator('#preview').screenshot({path:`${process.env.PREVIEW_OUT}/${family}-${dark?'dark':'light'}-${height}.png`});
+   checks.push({family,dark,height,overflow:v.overflow,cardHeights:v.cards.map(c=>c.card.height),textOverflow:v.textOverflow,root:v.root,cards:v.cards});
   }
  }
+ // Longest safe fallback source/status shares the identity row, never wraps or overlaps.
+ const fallbackChecks=[];
+ await page.evaluate(()=>window.previewFixture={times:[Date.now()-7200000,Date.now()-7200000,Date.now()-7200000]});
+ for(const family of ['systemLarge','systemExtraLarge'])for(const dark of [false,true]){
+  await page.selectOption('#family',family);await page.locator('#dark').setChecked(dark);await page.locator('#suffix').setChecked(true);await page.locator('#alias').fill('长别名测试十二字长别名测试');await page.locator('#alias').dispatchEvent('input');await page.waitForTimeout(30);
+  const v=await page.evaluate(()=>{const root=document.querySelector('#preview').firstElementChild;const texts=[...root.querySelectorAll('[data-type="text"]')];return {overflow:root.scrollHeight-root.clientHeight,clipped:texts.filter(e=>e.scrollWidth>e.clientWidth+1).map(e=>e.textContent),status:texts.filter(e=>e.textContent.includes('缓存·连接失败')).length};});
+  assert.ok(v.overflow<=1);assert.deepEqual(v.clipped,[]);assert.equal(v.status,3);fallbackChecks.push({family,dark,...v});
+ }
+ await page.evaluate(()=>delete window.previewFixture);await page.locator('#suffix').setChecked(false);await page.locator('#alias').fill('双不限');await page.locator('#alias').dispatchEvent('input');
  assert.deepEqual(errors,[]);
  await page.selectOption('#family','systemLarge');
  for(const dark of [false,true]){await page.locator('#dark').setChecked(dark);await page.waitForTimeout(30);await page.locator('#preview').evaluate(e=>e.style.height='380px');await page.locator('#preview').screenshot({path:process.env.PREVIEW_OUT?`${process.env.PREVIEW_OUT}/adaptive-${dark?'dark':'light'}.png`:`preview/adaptive-${dark?'dark':'light'}.png`});}
- console.log(JSON.stringify({checks,errors},null,2));
+ console.log(JSON.stringify({checks,fallbackChecks,errors},null,2));
 }finally{await browser.close();server.close();}

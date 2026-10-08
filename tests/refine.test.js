@@ -16,7 +16,7 @@ test('identity first heading protects separate suffix and timestamp without drop
   const w=await run({...m.ctx,env:{CARD1_NAME:'双不限套餐长别名测试',SHOW_PHONE_SUFFIX:'true'}}),t=texts(w);
   assert.ok(!t.some(n=>n.text.includes('中国联通')));assert.ok(t.some(n=>n.text==='· 尾号0001'));assert.ok(!t.some(n=>n.text.includes('··')));
   const suffix=t.find(n=>n.text==='· 尾号0001');assert.equal(suffix.flex,undefined);assert.equal(suffix.minScale,1);
-  if(!family.startsWith('accessory')){const h=w.children[0],time=h.children.at(-1);assert.match(time.text,/^\d{2}:\d{2}$/);assert.equal(time.font.size,10);assert.equal(time.minScale,1);assert.ok(!h.children.some(n=>n.type==='spacer'));if(family==='systemSmall')assert.ok(Array.from(h.children[1].text).length<=5);}
+  if(!family.startsWith('accessory')){const h=w.children[0],time=h.children.at(-1);assert.match(time.text,/^\d{2}:\d{2} · 更新$/);assert.equal(time.font.size,10);assert.equal(time.minScale,0.55);assert.ok(!h.children.some(n=>n.type==='spacer'));if(family==='systemSmall')assert.ok(Array.from(h.children[1].text).length<=5);}
   const custom=await run({...m.ctx,env:{WIDGET_TITLE:'我的账单',SHOW_BRAND:'true',CARD1_NAME:'工作卡'}});assert.ok(texts(custom).some(n=>n.text.includes('我的账单')));assert.ok(!texts(custom).some(n=>n.text.includes('中国联通')));
   const branded=await run({...m.ctx,env:{SHOW_BRAND:'true',CARD1_NAME:'工作卡'}});assert.ok(texts(branded).some(n=>n.text.includes('中国联通')));
  }

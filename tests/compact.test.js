@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import run from '../UnicomThreeCards.js';
-import {mock,capture,phones,cards,cardHolder} from './helpers.js';
+import {mock,capture,phones,cardContent,cards,cardHolder} from './helpers.js';
 const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(texts)];
 const nodes=n=>[n,...(n.children||[]).flatMap(nodes)];
 test('all renders three compact independent rows with exact API flow semantics',async()=>{
@@ -63,15 +63,15 @@ test('medium summary is a three-column metric row inside one neutral rounded car
  cards(t).forEach((card,i)=>{
   assert.equal(card.type,'stack');assert.equal(card.gap,0);assert.equal(card.flex,1); // cards share the height
   // The whole card is one rounded block: slot wash over the base + a brighter 1px outline.
-  assert.equal(card.borderRadius,16);assert.equal(card.borderWidth,1);assert.equal(card.padding,0);assert.deepEqual(card.children[1].padding,[0,7,0,9]);
+  assert.equal(card.borderRadius,16);assert.equal(card.borderWidth,1);assert.equal(card.padding,0);assert.deepEqual(cardContent(card).padding,[0,7,0,9]);
   assert.equal(card.backgroundColor.light,'#F8F9FB');
   assert.equal(card.backgroundColor.dark,'#1D1F23');
   assert.equal(card.borderColor.light,'#DDE1E7');
-  const [rail,content]=card.children;
+  const rail=card.children[0],content=cardContent(card);
   assert.equal(rail.width,2);assert.equal(rail.backgroundGradient.colors[1].dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
   const [idRow,metrics,space,bottom]=content.children;
   assert.equal(idRow.children[0].type,'stack');assert.ok(idRow.children[0].width>0);
-  assert.equal(idRow.children.at(-1).type,'text');assert.match(idRow.children.at(-1).text,/^(\d{2}:\d{2}|--:--)$/);
+  assert.equal(idRow.children.at(-1).type,'text');assert.match(idRow.children.at(-1).text,/^(\d{2}:\d{2} · 更新|--:--)$/);
   assert.equal(metrics.direction,'row');assert.equal(metrics.children.length,3);
   for(const col of metrics.children){assert.equal(col.flex,1);assert.equal(col.direction,'column');assert.ok(!col.backgroundColor);assert.ok(nodes(col.children[0]).some(n=>n.type==='text'));assert.equal(col.children[1].direction,'row');}
   assert.equal(space.type,'spacer');

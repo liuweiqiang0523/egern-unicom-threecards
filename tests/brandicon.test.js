@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import run from '../UnicomThreeCards.js';
-import {mock,capture,phones,cards} from './helpers.js';
+import {mock,capture,phones,cardContent,cards} from './helpers.js';
 
 const ICON_SRC=/^data:image\/png;base64,/;
 const MODULE_ICON='https://cdn.jsdelivr.net/gh/liuweiqiang0523/egern-unicom-threecards@main/assets/unicom-icon.png';
@@ -22,7 +22,7 @@ test('summary shows a 中国联通 title bar (module icon + text) at the top by 
  assert.equal(images(t).length,2); // offline brand image plus refresh symbol in medium header
  // the three cards still follow the title bar, each with its own slot square (not the icon)
  assert.equal(cards(t).length,3);
- assert.ok(cards(t).every(c=>c.children[1].children[0].children[0].type==='stack'));
+ assert.ok(cards(t).every(c=>cardContent(c).children[0].children[0].type==='stack'));
  // Header repeats a real successful time; no render-time substitution.
  assert.ok(texts(bar).some(s=>/^\d{2}:\d{2}$/.test(s)));
 });

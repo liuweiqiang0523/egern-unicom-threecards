@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import run from '../UnicomThreeCards.js';
-import {mock,capture,phones,cards,cardHolder} from './helpers.js';
+import {mock,capture,phones,cardContent,cards,cardHolder} from './helpers.js';
 
 const nodes=n=>[n,...(n.children||[]).flatMap(nodes)];
 const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(texts)];
@@ -18,14 +18,14 @@ test('every home summary card is one neutral rounded block with a 1px outline an
   cards(t).forEach((card,i)=>{
    assert.equal(card.type,'stack',family);
    assert.equal(card.borderRadius,16,family);
-   assert.equal(card.borderWidth,1,family);
-   assert.equal(card.backgroundColor.dark,cardDark[i],family);
-   assert.equal(card.backgroundColor.light,'#F8F9FB',family);
-   assert.equal(card.borderColor.dark,'#292B30',family);
+   const roomy=['systemLarge','systemExtraLarge'].includes(family);const surface=roomy?card.children[0]:card;assert.equal(card.borderWidth,roomy?undefined:1,family);
+   assert.equal(surface.backgroundColor.dark,cardDark[i],family);
+   assert.equal(surface.backgroundColor.light,'#F8F9FB',family);
+   assert.equal((roomy?card.backgroundGradient.colors.at(-1):card.borderColor).dark,'#292B30',family);
    // the dark wash must stay the specified subtle 0x14..0x1F range, not a solid fill
-   assert.equal(card.children[1].children[0].children[0].backgroundColor.dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
-   assert.equal(card.backgroundColor.dark.length,7,'neutral opaque card, no slot wash');
-   assert.equal(card.padding,0,family);assert.ok(Array.isArray(card.children[1].padding),family);
+   assert.equal(cardContent(card).children[0].children[0].backgroundColor.dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
+   assert.equal(surface.backgroundColor.dark.length,7,'neutral opaque card, no slot wash');
+   assert.equal(card.padding,roomy?2:0,family);assert.ok(Array.isArray(cardContent(card).padding),family);
   });
  }
 });

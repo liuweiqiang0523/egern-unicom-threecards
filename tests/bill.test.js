@@ -50,7 +50,7 @@ test('lock fee warning leaves flow and voice normal and circular focuses exact f
 });
 test('small heading constrains long title alias and suffix without losing success time',async()=>{
  const m=mock();await capture(m);m.ctx.widgetFamily='systemSmall';m.ctx.env={WIDGET_TITLE:'标题'.repeat(12),CARD1_NAME:'工作联通'.repeat(5),SHOW_PHONE_SUFFIX:'true'};
- const w=await run(m.ctx),heading=w.children[0],label=heading.children[1];assert.equal(label.flex,1);assert.equal(label.maxLines,1);assert.ok(label.minScale>0);assert.equal(heading.children[2].text,'· 尾号0001');assert.equal(heading.children[2].minScale,1);assert.match(heading.children.at(-1).text,/^\d{2}:\d{2}$/);assert.ok(!JSON.stringify(w).includes(phones[0]));
+ const w=await run(m.ctx),heading=w.children[0],label=heading.children[1];assert.equal(label.flex,1);assert.equal(label.maxLines,1);assert.ok(label.minScale>0);assert.equal(heading.children[2].text,'· 尾号0001');assert.equal(heading.children[2].minScale,1);assert.match(heading.children.at(-1).text,/^\d{2}:\d{2} · 更新$/);assert.ok(!JSON.stringify(w).includes(phones[0]));
 });
 test('normal light and dark capsule text meets contrast on opaque widget base',async()=>{
  const rgb=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));

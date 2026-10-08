@@ -18,4 +18,5 @@ const cards=w=>flatten(w).filter(c=>c&&c.type==='stack'&&c.borderRadius===16);
 // The column stack that holds the three cards when a title bar is present; its gap is the card
 // spacing. Returns undefined when there is no title bar (cards are direct children then).
 const cardHolder=w=>(w.children||[]).find(c=>c&&c.type==='stack'&&(c.children||[]).some(x=>x&&x.borderRadius===16));
-export {mock,capture,phones,API,key,cards,cardHolder};
+const cardContent=c=>c.backgroundGradient?c.children[0].children[0]:c.children[1];
+export {mock,capture,phones,API,key,cards,cardHolder,cardContent};

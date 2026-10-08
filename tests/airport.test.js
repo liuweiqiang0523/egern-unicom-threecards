@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import run from '../UnicomThreeCards.js';
-import {mock,capture,phones,cards} from './helpers.js';
+import {mock,capture,phones,cardContent,cards} from './helpers.js';
 const texts=n=>[...(n.type==='text'?[n.text]:[]),...(n.children||[]).flatMap(texts)];
 const nodes=n=>[n,...(n.children||[]).flatMap(nodes)];
 const allowed={widget:['type','children','backgroundColor','padding','gap','refreshAfter'],stack:['type','direction','alignItems','gap','children','flex','padding','backgroundColor','backgroundGradient','borderRadius','borderWidth','borderColor','width','height'],text:['type','text','font','textColor','maxLines','minScale','flex','textAlign'],image:['type','src','color','width','height','borderRadius','resizeMode'],spacer:['type','length','flex']};
@@ -19,14 +19,14 @@ async function setupFlows(flows){
  return m;
 }
 // The bar is always the last child of the flow capsule, which is the last child of the card.
-const barOf=card=>card.children[1].children.at(-1).children.at(-1);
+const barOf=card=>cardContent(card).children.at(-1).children.at(-1);
 const hexRGB=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
 function hsv(hex){const [r,g,b]=hexRGB(hex).map(v=>v/255);const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h=(h*60+360)%360;}return {h,d};}
 function colorStrings(n){const out=[];const visit=v=>{if(typeof v==='string'){if(/^#[0-9A-Fa-f]{6,8}$/.test(v))out.push(v);}else if(Array.isArray(v))v.forEach(visit);else if(v&&typeof v==='object')for(const x of Object.values(v))visit(x);};visit(n);return out;}
 test('summary slot palette is blue/purple/cyan and no colour is yellow or orange',async()=>{
  const m=await setup(used);
  const t=await run({...m.ctx,env:{VIEW:'all'}});
- const dots=cards(t).map(c=>c.children[1].children[0].children[0].backgroundColor);
+ const dots=cards(t).map(c=>cardContent(c).children[0].children[0].backgroundColor);
  assert.deepEqual(dots.map(c=>c.dark),['#B66CFF','#5EA7FF','#48D7C0']);
  assert.deepEqual(dots.map(c=>c.light),['#8843C2','#286CC4','#087F70']);
  assert.equal(new Set(dots.map(c=>c.dark)).size,3);
@@ -43,7 +43,7 @@ test('unlimited cards need no configuration: gradient fade, ∞ and a 不限量 
  assert.equal(texts(t).filter(x=>x==='407.44').length,3);
  assert.ok(!s.includes('%'));
  for(const card of cards(t)){
-  const content=card.children[1];
+  const content=cardContent(card);
   assert.ok(texts(content.children[1]).includes('不限量'),'chip label');
   const bar=barOf(card);
   assert.equal(bar.direction,'row');
