@@ -57,6 +57,21 @@ function cachedData(record) {
  });
  return validData(data)?data:null;
 }
+// Official Headers.getAll avoids treating a joined, ambiguous Location as one URL.
+// Only these public login routes are recognized; never infer auth from arbitrary "login" text.
+function redirectTarget(resp) {
+ try {
+  const h=resp.headers;
+  const values=typeof h?.getAll==='function'?h.getAll('location'):[header(h,'location')];
+  if(!Array.isArray(values)||values.length!==1) return 'UNKNOWN';
+  const raw=values[0];
+  if(typeof raw!=='string'||!raw.trim()||raw.length>8192||/[\u0000-\u0020\u007f\\,]/.test(raw)) return 'UNKNOWN';
+  const u=new URL(raw,API);
+  if(!['https:','http:'].includes(u.protocol)||u.username||u.password) return 'UNKNOWN';
+  if(u.origin==='https://uac.10010.com'&&['/','/portal/homeLogin'].includes(u.pathname)) return 'AUTH_REDIRECT';
+  return u.origin===new URL(API).origin?'SAME_ORIGIN':'OTHER_ORIGIN';
+ } catch {return 'UNKNOWN';}
+}
 async function load(ctx,slot) {
  const record=safeJSON(ctx,slotKey(slot));
  const phone=record?.phone;
@@ -66,7 +81,7 @@ async function load(ctx,slot) {
  const now=Date.now(),age=now-record.updatedAt;
  if(record.dataSchema===2 && validData(record.data) && age>=0&&age<FRESH) return {status:'已更新',source:'fresh_cache',data:record.data,updatedAt:record.updatedAt};
  // Stage-derived allowlisted metadata only; never inspect runtime exception messages/codes.
- let reason='TRANSPORT',httpStatus;
+ let reason='TRANSPORT',httpStatus,target;
  try {
   const resp=await ctx.http.get(API+'?version=iphone_c@10.0100&desmobiel='+encodeURIComponent(phone)+'&showType=0',{
    // Manual exposes the redirect status without following it or sending credentials elsewhere.
@@ -75,6 +90,7 @@ async function load(ctx,slot) {
   });
   httpStatus=Number.isInteger(resp?.status)&&resp.status>=100&&resp.status<=599?resp.status:undefined;
   reason=httpStatus===401||httpStatus===403?'AUTH':'HTTP';
+  if([301,302,303,307,308].includes(httpStatus)) target=redirectTarget(resp);
   if(!resp || resp.status!==200) throw new Error();
   reason='JSON';
   const body=await resp.json();
@@ -89,7 +105,7 @@ async function load(ctx,slot) {
   ctx.storage.setJSON(slotKey(slot),{...current,data,dataSchema:2,updatedAt});
   return {status:'已更新',source:'network',httpStatus,data,updatedAt};
  } catch {
-  const diagnostic={source:'network',reason,...(httpStatus===undefined?{}:{httpStatus})};
+  const diagnostic={source:'network',reason,...(httpStatus===undefined?{}:{httpStatus}),...(target?{redirectTarget:target}:{})};
   // Never render exceptions: they may contain URL/cookie/phone from the HTTP runtime.
   const current=safeJSON(ctx,slotKey(slot));
   if(current?.cookie!==record.cookie||current?.capturedAt!==record.capturedAt) return {status:'凭据已更新，请刷新'};
@@ -103,13 +119,15 @@ async function load(ctx,slot) {
  }
 }
 // Optional local inspection: returns safe data/source/reason only, never credentials.
-export const BUILD_ID='safe-manual-redirect-diagnostics-v2';
+export const BUILD_ID='safe-redirect-target-v3';
 export const queryDiagnostic=(ctx,slot)=>[1,2,3].includes(slot)?load(ctx,slot):Promise.resolve({status:'无效卡槽',reason:'UNKNOWN'});
 function queryLabel(result) {
  if(result.source==='fresh_cache') return '有效缓存';
  if(result.source==='network'&&!result.reason) return '更新';
  const labels={TRANSPORT:'连接失败',JSON:'数据异常',DATA:'数据异常',STORAGE:'保存失败',AUTH:'登录失效',API:'接口异常',UNKNOWN:'查询失败'};
- const why=result.reason==='HTTP'?'HTTP'+(result.httpStatus||'异常'):(labels[result.reason]||'查询失败');
+ // Compact codes preserve the accepted identity-row budget; full meaning is in INSTALL.
+ const redirects={AUTH_REDIRECT:'登录',SAME_ORIGIN:'同站',OTHER_ORIGIN:'异站',UNKNOWN:'未知'};
+ const why=result.reason==='HTTP'?(result.redirectTarget?String(result.httpStatus)+redirects[result.redirectTarget]:'HTTP'+(result.httpStatus||'异常')):(labels[result.reason]||'查询失败');
  return (result.source==='fallback_cache'?'缓存·':'')+why;
 }
 function enabled(value) {return [true,'true','on','1'].includes(value);}

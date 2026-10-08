@@ -39,9 +39,17 @@ try{
   const v=await page.evaluate(()=>{const root=document.querySelector('#preview').firstElementChild;const texts=[...root.querySelectorAll('[data-type="text"]')];return {overflow:root.scrollHeight-root.clientHeight,clipped:texts.filter(e=>e.scrollWidth>e.clientWidth+1).map(e=>e.textContent),status:texts.filter(e=>e.textContent.includes('缓存·连接失败')).length};});
   assert.ok(v.overflow<=1);assert.deepEqual(v.clipped,[]);assert.equal(v.status,3);fallbackChecks.push({family,dark,...v});
  }
+ // All redirect labels fit the same frozen geometry, including long aliases and suffixes.
+ const redirectChecks=[];
+ for(const [target,label] of [['https://uac.10010.com/portal/homeLogin?token=synthetic','302登录'],['/same?token=synthetic','302同站'],['https://foreign.invalid/path','302异站'],['data:text/plain,synthetic','302未知']])for(const family of ['systemLarge','systemExtraLarge'])for(const dark of [false,true]){
+  await page.evaluate(target=>window.previewFixture={times:Array(3).fill(Date.now()-7200000),redirect:target},target);
+  await page.selectOption('#family',family);await page.locator('#dark').setChecked(dark);await page.locator('#alias').dispatchEvent('input');await page.waitForTimeout(30);
+  const v=await page.evaluate(label=>{const root=document.querySelector('#preview').firstElementChild;const texts=[...root.querySelectorAll('[data-type="text"]')];return {overflow:root.scrollHeight-root.clientHeight,clipped:texts.filter(e=>e.scrollWidth>e.clientWidth+1).map(e=>e.textContent),status:texts.filter(e=>e.textContent.includes('缓存·'+label)).length};},label);
+  assert.ok(v.overflow<=1);assert.deepEqual(v.clipped,[]);assert.equal(v.status,3);redirectChecks.push({family,dark,label,...v});
+ }
  await page.evaluate(()=>delete window.previewFixture);await page.locator('#suffix').setChecked(false);await page.locator('#alias').fill('双不限');await page.locator('#alias').dispatchEvent('input');
  assert.deepEqual(errors,[]);
  await page.selectOption('#family','systemLarge');
  for(const dark of [false,true]){await page.locator('#dark').setChecked(dark);await page.waitForTimeout(30);await page.locator('#preview').evaluate(e=>e.style.height='380px');await page.locator('#preview').screenshot({path:process.env.PREVIEW_OUT?`${process.env.PREVIEW_OUT}/adaptive-${dark?'dark':'light'}.png`:`preview/adaptive-${dark?'dark':'light'}.png`});}
- console.log(JSON.stringify({checks,fallbackChecks,errors},null,2));
+ console.log(JSON.stringify({checks,fallbackChecks,redirectChecks,errors},null,2));
 }finally{await browser.close();server.close();}

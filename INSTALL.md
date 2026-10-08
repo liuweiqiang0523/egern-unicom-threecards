@@ -180,6 +180,25 @@ DSL：[Egern Widgets 官方文档](https://egernapp.com/docs/configuration/widge
 
 ### 可选本机诊断（不要分享凭据）
 
-无需新 Env。JS 导出 `BUILD_ID=safe-manual-redirect-diagnostics-v2` 和 `queryDiagnostic(ctx, 1|2|3)` 供本机开发检查；后者沿用正常查询／缓存／失效行为，**不是只读探针**。如需反馈，只摘录 build、卡槽序号、`source`、`reason`、`httpStatus`、`updatedAt`；不要发整个返回对象、storage、请求、响应或日志（返回数据可能包含私人余额）。source 仅 network/fresh_cache/fallback_cache；reason 仅 HTTP/JSON/DATA/TRANSPORT/STORAGE/AUTH/API/UNKNOWN，httpStatus仅合法数字100–599。没有原始异常、URL、响应正文、完整号码或Cookie。首次待捕获／已失效／凭据轮换提前返回不伪造查询来源。手机曾出现的旧时间差异仍不能反推具体根因。
+无需新 Env。JS 导出 `BUILD_ID=safe-redirect-target-v3` 和 `queryDiagnostic(ctx, 1|2|3)` 供本机开发检查；后者沿用正常查询／缓存／失效行为，**不是只读探针**。如需反馈，只摘录 build、卡槽序号、`source`、`reason`、`httpStatus`、`redirectTarget`、`updatedAt`；不要发整个返回对象、storage、请求、响应或日志（返回数据可能包含私人余额）。source 仅 network/fresh_cache/fallback_cache；reason 仅 HTTP/JSON/DATA/TRANSPORT/STORAGE/AUTH/API/UNKNOWN，httpStatus仅合法数字100–599。没有原始异常、URL、响应正文、完整号码或Cookie。重定向仅新增 `redirectTarget=AUTH_REDIRECT/SAME_ORIGIN/OTHER_ORIGIN/UNKNOWN`；不保存／输出目标 host、path、query、fragment，不记录原始 Location。首次待捕获／已失效／凭据轮换提前返回不伪造查询来源。手机曾出现的旧时间差异仍不能反推具体根因。
 
-更新远程模块后也须更新关联远程JS；若采用本地JS，则重新下载并替换本地文件，单更新模块不会替换它。不清空storage、不重新抓卡。核对JS内BUILD_ID及每卡来源文字，以区分实际运行版本。浏览器设计预览不证明iPhone原生圆角或字体已验收。
+更新远程模块后也须更新关联远程JS；若采用本地JS，则重新下载并替换本地文件，单更新模块不会替换它。不清空storage、不重新抓卡。核对JS内BUILD_ID及每卡来源文字，以区分实际运行版本。
+
+### HTTP302 安全目标分类与独立会话边界
+
+本版是诊断增强，**尚未证明两张旧卡已恢复联网**。沿用原样式、成功时间、1小时有效缓存／24小时最长回退、8秒请求超时、三卡并行与原捕获槽位；不会跟随重定向、跨站发 Cookie 或自动清除302卡凭据。仅在原时间旁显示紧凑状态：
+
+| 文字（前缀可能为「缓存·」） | 安全枚举 | 含义／下一步 |
+|---|---|---|
+| 302登录 | AUTH_REDIRECT | 目标精确匹配已核实的 `https://uac.10010.com/` 或 `/portal/homeLogin` 登录页；在联通 App 中重新登录该卡，不在跳转站点输入凭据 |
+| 302同站 | SAME_ORIGIN | HTTPS host／port 与查询接口一致；不能据此断定登录失效 |
+| 302异站 | OTHER_ORIGIN | HTTP(S) origin 不同（包含降级HTTP或改端口）；不访问目标，不能据此断定认证跳转 |
+| 302未知 | UNKNOWN | 缺失、多值、不合法、非HTTP(S)、含userinfo、异常或无法读取的 Location；保持未知，不猜认证 |
+
+301/303/307/308 同样显示其实际状态码。官方 Headers 使用 `getAll("location")` 拒绝多值歧义，兼容 get／普通对象；响应体不读取。仅精确白名单识别登录，未知 `/login` 或类似域名不会被误判。需要反馈时只发状态文字或上述安全字段，**不要发送 Location、Cookie、完整请求或整份日志**。更新后正常刷新观察即可，无需为安装本版重抓卡；有效缓存仍会在1小时内不发请求。
+
+独立会话调查：原版 [IBL3ND/module Unicom_Widget.JS](https://github.com/IBL3ND/module/blob/fd40260845fd0013302710103f1bdabcf8b53784/Unicom_Widget.JS) 也只复用余额请求里的 Cookie＋desmobiel，没有刷新登录协议。本模块记录的是手机号、该次Cookie、捕获时间及缓存，不包含独立登录密码／token_online／appid／deviceId。公开 [登录实现](https://github.com/k1ngbanana/unicom-token-generate/blob/b6209c5fe03542f9b19d3dcc7ad35258dafc06f8/worker.ts) 在 `/mobileService/login.htm` 通过加密手机号、密码及设备字段登录，再从响应获得 token_online／ecs_token；这不是由失效Cookie推导新token的办法。另有公开脚本注释提到 onLine.htm＋token_online/appid/deviceId，但实现被混淆，未执行、未采用，也不是官方可用性保证。当前捕获范围不含这些登录请求／响应，不能安全凭空补齐。
+
+因此仅靠现有Cookie捕获，暂未找到已验证的无额外凭据独立保活路径。三个Cookie独立存储不代表服务端保证并存；切卡后当前卡更新、另两卡302支持会话关联假设，但目标尚待本版真机分类。即使识别出登录跳转，也不等于证明服务端永久只允许一个账号；需独立登录上下文及长期联网证据才能下结论。不得复用当前卡Cookie查询其他号码，不延长缓存假装修好，不自动调用登录／保活端点。
+
+依据：[Egern 官方 JavaScript API](https://egernapp.com/docs/javascript-api/)（manual返回3xx及 Headers契约）、[联通公开登录页](https://uac.10010.com/portal/homeLogin)。浏览器设计预览不证明iPhone原生圆角或字体已验收。
