@@ -8,11 +8,9 @@ for(const family of ['systemMedium','systemLarge','systemExtraLarge','systemSmal
  const m=mock();for(const p of phones)await capture(m,p);
  const t=await run({...m.ctx,widgetFamily:family,env:{VIEW:'all',LOW_BALANCE_THRESHOLD:'0'}});
  cards(t).forEach((c,i)=>{
-  const rail=c.children[0],g=rail.backgroundGradient,roomy=['systemLarge','systemExtraLarge'].includes(family),mid=Math.floor(g.colors.length/2);
-  assert.equal(rail.width,2);assert.equal(rail.height,family==='systemSmall'?26:family==='systemMedium'?30:c.height-2);assert.equal(rail.borderRadius,rail.width/2);
-  assert.equal(g.type,'linear');assert.deepEqual(g.startPoint,{x:0.5,y:0});assert.deepEqual(g.endPoint,{x:0.5,y:1});assert.equal(g.stops[mid],0.5);assert.equal(g.stops[0],0);assert.equal(g.stops.at(-1),1);
-  assert.equal(g.colors[mid].dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
-  for(const mode of ['light','dark']){assert.equal(g.colors[0][mode],g.colors[mid][mode]+(roomy?'00':'26'));assert.equal(g.colors.at(-1)[mode],g.colors[0][mode]);}
+  const rail=c.children[0],roomy=['systemLarge','systemExtraLarge'].includes(family);
+  if(roomy){assert.equal(rail.width,3);assert.equal(rail.height,undefined);assert.equal(rail.children[0].height,12);assert.equal(rail.children[2].height,12);assert.equal(rail.children[1].flex,1);assert.equal(rail.children[1].backgroundColor.dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);}
+  else {const g=rail.backgroundGradient;assert.equal(rail.width,2);assert.equal(rail.height,family==='systemSmall'?26:30);assert.equal(rail.borderRadius,1);assert.equal(g.type,'linear');assert.deepEqual(g.startPoint,{x:0.5,y:0});assert.deepEqual(g.endPoint,{x:0.5,y:1});assert.deepEqual(g.stops,[0,0.5,1]);for(const mode of ['light','dark'])assert.equal(g.colors[0][mode],g.colors[1][mode]+'26');}
   const data=m.ctx.storage.getJSON('egern.unicom3.v1.slot.'+(i+1)).data;
   for(const d of family==='systemSmall'?[data[2]]:data){assert.deepEqual(nodes(c).find(n=>n.text===d.value).textColor,ink);assert.ok(nodes(c).filter(n=>n.text===d.unit).every(n=>JSON.stringify(n.textColor)===JSON.stringify(muted)));}
  });

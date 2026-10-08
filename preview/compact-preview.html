@@ -37,6 +37,7 @@ function render(n,vertical){
    const el=render(c,col);
    if(col&&hasFlex(c)&&!c.height){el.style.flex='1 1 0px';el.style.minHeight='0';}
    else if(c.flex){el.style.flex=String(c.flex)+' 1 0px';if(!col)el.style.alignSelf='stretch';}
+   if(!col&&hasFlex(c)&&!c.height)el.style.alignSelf='stretch';
    e.append(el);
   }
  }

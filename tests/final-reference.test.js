@@ -16,6 +16,6 @@ test('reference header time is latest successful account time, including cached 
 });
 test('reference large cards add actual resource symbols and thin separators without changing flow calculations',async()=>{
  const m=mock();for(const p of phones)await capture(m,p);const t=await run({...m.ctx,widgetFamily:'systemLarge',env:{VIEW:'all'}});
- for(const c of cards(t)){assert.equal(c.height,82);const metrics=c.children[1].children[2];assert.deepEqual(metrics.children.filter(x=>x.type==='stack'&&x.width===1).map(x=>x.height),[30,30]);assert.deepEqual(metrics.children.filter(x=>x.direction==='column').map(x=>x.children[0].children[0].src),['sf-symbol:yensign.circle','sf-symbol:phone.fill','sf-symbol:cloud.fill']);}
+ for(const c of cards(t)){assert.equal(c.height,undefined);assert.equal(c.flex,1);const metrics=c.children[1].children[2];assert.deepEqual(metrics.children.filter(x=>x.type==='stack'&&x.width===1).map(x=>x.height),[30,30]);assert.deepEqual(metrics.children.filter(x=>x.direction==='column').map(x=>x.children[0].children[0].src),['sf-symbol:yensign.circle','sf-symbol:phone.fill','sf-symbol:cloud.fill']);}
  assert.match(t.children[0].children[0].src,/^data:image\/png;base64,iVBOR/);
 });

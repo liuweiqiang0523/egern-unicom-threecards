@@ -256,15 +256,19 @@ function compactCard(ctx,result,selection,family,metric) {
  const clock=cached?time+' · '+(result.status.startsWith('旧缓存')?'旧缓存':'缓存'):time;
  const idRow=row([dot,...compactIdentity(alias,lock?'':result.suffix,family,s),spacer(),{...text(clock,s.time,cached?{light:'#8A6243',dark:'#D99A70'}:SUMMARY_MUTED),minScale:cached?0.6:1}],4);
  const roomy=family==='systemLarge'||family==='systemExtraLarge';
- // Reference rows are ~90pt apart at a normalized 402pt screenshot width. Fixed row heights
- // fence off recursive flex inflation; excess iOS frame height belongs below the whole panel.
- const cardHeight=family==='systemExtraLarge'?86:82;
+ // Roomy cards share the actual widget height; fixed identity/metrics fence recursive flex.
+ // Remaining room belongs to explicit breathing slots, never the title or metric-to-bar gap.
  // Move padding to the content, preserving its exact x/y coordinates. The rail now touches
  // the left border; transparent corner ends keep it inside the rounded outline without clipping APIs.
  const pad=family==='systemMedium'?[0,7,0,7]:roomy?[6,8,6,8]:CARD_PAD;
- const railHeight=roomy?cardHeight-2:small?26:30;
- const edge=roomy?16/railHeight:0;
- const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:0,padding:0,...(roomy?{height:cardHeight}:{flex:1}),backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[{type:'stack',direction:'column',width:2,height:railHeight,borderRadius:1,backgroundGradient:{type:'linear',colors:[{light:SUMMARY_COLORS[slot].light+(roomy?'00':'26'),dark:SUMMARY_COLORS[slot].dark+(roomy?'00':'26')},...(roomy?[{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'}]:[]),SUMMARY_COLORS[slot],...(roomy?[{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'}]:[]),{light:SUMMARY_COLORS[slot].light+(roomy?'00':'26'),dark:SUMMARY_COLORS[slot].dark+(roomy?'00':'26')}],stops:roomy?[0,edge,0.5,1-edge,1]:[0,0.5,1],startPoint:{x:0.5,y:0},endPoint:{x:0.5,y:1}},children:[]},{type:'stack',direction:'column',padding:[pad[0],pad[1],pad[2],pad[3]+s.gap],gap:family==='systemMedium'?1:roomy?0:s.gap,flex:1,children}]});
+ const railHeight=small?26:30;
+ const railColor={light:['#713FB8','#286FC2','#147D70'][slot],dark:SUMMARY_COLORS[slot].dark};
+ const rail=roomy?{type:'stack',direction:'column',width:3,gap:0,alignItems:'start',children:[
+  {type:'stack',width:3,height:12,backgroundGradient:{type:'linear',colors:[{light:railColor.light+'00',dark:railColor.dark+'00'},railColor],startPoint:{x:0.5,y:0},endPoint:{x:0.5,y:1}},children:[]},
+  {type:'stack',width:3,flex:1,backgroundColor:railColor,children:[]},
+  {type:'stack',width:3,height:12,backgroundGradient:{type:'linear',colors:[railColor,{light:railColor.light+'00',dark:railColor.dark+'00'}],startPoint:{x:0.5,y:0},endPoint:{x:0.5,y:1}},children:[]}
+ ]}:{type:'stack',direction:'column',width:2,height:railHeight,borderRadius:1,backgroundGradient:{type:'linear',colors:[{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'},SUMMARY_COLORS[slot],{light:SUMMARY_COLORS[slot].light+'26',dark:SUMMARY_COLORS[slot].dark+'26'}],stops:[0,0.5,1],startPoint:{x:0.5,y:0},endPoint:{x:0.5,y:1}},children:[]};
+ const block=children=>({type:'stack',direction:'row',alignItems:'start',gap:0,padding:0,flex:1,backgroundColor:slotCardBg(slot),borderRadius:CARD_RADIUS,borderWidth:1,borderColor:slotCardBorder(slot),children:[rail,{type:'stack',direction:'column',padding:[pad[0],pad[1],pad[2],pad[3]+s.gap-(roomy?1:0)],gap:family==='systemMedium'?1:roomy?0:s.gap,flex:1,children}]});
  if(!result.data) return lock?{type:'stack',direction:'column',gap:2,children:[idRow,text(result.status,9,COLORS.accent)]}:block([idRow,text(result.status,small?9:11,COLORS.accent)]);
  const [fee,voice,flow]=result.data;
  if(lock) return {type:'stack',direction:'column',gap:1,children:[row([dot,...compactIdentity(alias,'',family,s),text(flow.value,s.value,COLORS.value,'semibold'),text(flow.unit,s.unit,SUMMARY_MUTED)],3)]};
@@ -278,7 +282,7 @@ function compactCard(ctx,result,selection,family,metric) {
  if(roomy){
   idRow.height=s.name*1.3;
   // Explicit gaps, not a floor-pinning spacer: title → metrics → bar keep the same rhythm.
-  return block([idRow,{type:'stack',height:7,children:[]},metrics,{type:'stack',height:5,children:[]},bottom]);
+  return block([idRow,{type:'stack',flex:1,children:[{type:'stack',height:7,children:[]}]},metrics,{type:'stack',height:5,children:[]},bottom,{type:'stack',flex:1,children:[]}]);
  }
  return block([idRow,metrics,spacer(),bottom]);
 }
@@ -333,11 +337,11 @@ async function compactWidget(ctx) {
  const successfulTime=latestSuccess?new Date(latestSuccess).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}):'';
  const titleBar=title?[{type:'stack',direction:'row',alignItems:'center',gap:3,padding:[0,0,0,0],children:[{type:'image',src:ICON_SRC,color:{light:'#C82E40',dark:'#E84353'},width:s.ticon,height:s.ticon,borderRadius:3,resizeMode:'contain'},text(title,s.thead,COLORS.value,'semibold'),spacer(),...(successfulTime?[{type:'image',src:'sf-symbol:arrow.clockwise',width:s.time,height:s.time,color:SUMMARY_MUTED},text(successfulTime,s.time,SUMMARY_MUTED)]:[])]}]:[];
  const cardList=order.map(i=>compactCard(ctx,results[i],i+1,family,metrics[i]));
- // Large rows stay at reference proportions rather than stretching to fill a system widget.
+ // Roomy rows evenly fill the actual frame; header never joins height distribution.
  // Medium/small retain their compact budget; the header never contains flex.
  const roomy=family==='systemLarge'||family==='systemExtraLarge';
- const holder={type:'stack',direction:'column',gap:CARD_GAP,...(roomy?{height:3*(family==='systemExtraLarge'?86:82)+2*CARD_GAP}:{flex:1}),children:cardList};
- const children=roomy?[...titleBar,holder,spacer()]:titleBar.length?[titleBar[0],holder]:cardList;
+ const holder={type:'stack',direction:'column',gap:CARD_GAP,flex:1,children:cardList};
+ const children=roomy?[...titleBar,holder]:titleBar.length?[titleBar[0],holder]:cardList;
  return {...widget(children,enabled(ctx.env?.TRANSLUCENT)),backgroundColor:enabled(ctx.env?.TRANSLUCENT)?{light:'#F3F4F6B3',dark:'#17181BB3'}:SUMMARY_BG,padding:lock?4:small?6:family==='systemMedium'?6:family==='systemLarge'?7:8,gap:lock?2:roomy?6:titleBar.length?TITLE_GAP:CARD_GAP};
 }
 export default async function(ctx) {

@@ -17,10 +17,10 @@ for(const family of ['systemMedium','systemLarge','systemExtraLarge']) test('thr
  assert.equal(t.children[0].children[1].textColor.dark,'#FFFFFF');
  cards(t).forEach((card,i)=>{
   const [rail,content]=card.children;
-  assert.equal(card.direction,'row');assert.equal(rail.width,2);assert.equal(rail.children.length,0);
-  assert.equal(rail.backgroundGradient.colors[Math.floor(rail.backgroundGradient.colors.length/2)].dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
   const roomy=family!=='systemMedium';
-  const header=content.children[0],metrics=content.children[roomy?2:1],bottom=content.children.at(-1);
+  assert.equal(card.direction,'row');assert.equal(rail.width,roomy?3:2);
+  assert.equal(roomy?rail.children[1].backgroundColor.dark:rail.backgroundGradient.colors[1].dark,['#B66CFF','#5EA7FF','#48D7C0'][i]);
+  const header=content.children[0],metrics=content.children[roomy?2:1],bottom=content.children[roomy?4:3];
   assert.equal(hasFlex(header),false,'identity must not absorb remaining card height');
   assert.equal(header.children.at(-1).text,new Date(records[i].updatedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'}));
   assert.equal(metrics.children.length,roomy?5:3);assert.equal(metrics.direction,'row');
@@ -32,9 +32,9 @@ for(const family of ['systemMedium','systemLarge','systemExtraLarge']) test('thr
   });
   assert.equal(nodes(card).filter(n=>n.text===records[i].data[2].value).length,1);
   if(roomy){
-   assert.equal(card.height,family==='systemLarge'?82:86);assert.ok(!card.flex);
-   assert.equal(rail.height,card.height-2);assert.equal(card.padding,0);assert.deepEqual(content.padding,[6,8,6,11]);
-   assert.equal(content.children[1].height,7);assert.equal(content.children[3].height,5);
+   assert.equal(card.height,undefined);assert.equal(card.flex,1);
+   assert.equal(rail.height,undefined);assert.equal(card.padding,0);assert.deepEqual(content.padding,[6,8,6,10]);
+   assert.equal(content.children[1].flex,1);assert.equal(content.children[1].children[0].height,7);assert.equal(content.children[3].height,5);assert.equal(content.children[5].flex,1);
    assert.ok(!content.children.some(n=>n.type==='spacer'),'no floor-pinned whitespace');
    const col=metrics.children[4];assert.ok(col.children[1].children[0].font.size>header.children[1].font.size);
    assert.ok(header.children[1].font.size>nodes(col.children[0]).find(n=>n.type==='text').font.size);
