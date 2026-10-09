@@ -1,87 +1,70 @@
-// Passive evidence only. No identity contract has been verified for onLine.htm.
-// Never persist values, credentials, bodies, cookies or inferred slot bindings.
-const KEY = 'egern.unicom.online-diag.v1';
-const REQUEST_FIELDS = ['appId', 'token_online', 'version', 'deviceId', 'deviceCode', 'deviceModel', 'step', 'isFirstInstall'];
-const RESPONSE_FIELDS = ['token_online', 'invalidat', 'code'];
-const flags = names => Object.fromEntries(names.map(name => [name, false]));
+// Entrance only: never read bodies or headers, infer identities or send requests.
+export const BUILD = 'ONLINE_ENTRANCE_V2';
+const KEY = 'egern.unicom.online-diag.v2';
+const PROBE = `${KEY}.local-probe`;
+const COUNTERS = ['requestSeen', 'responseSeen', 'postSeen', 'otherSeen'];
+const READ = ['READ_OK', 'MISSING', 'READ_FAILED', 'INVALID'];
 function empty() {
-  return { schema: 1, requestSeen: 0, responseSeen: 0, bound: false, reason: 'UNBOUND_IDENTITY',
-    requestFields: flags(REQUEST_FIELDS), responseFields: flags(RESPONSE_FIELDS), setCookie: false };
+  return {schema:2, requestSeen:0, responseSeen:0, postSeen:0, otherSeen:0,
+    requestPresent:false, responsePresent:false, method:'OTHER', readStatus:'MISSING'};
+}
+function read(ctx) {
+  const record = empty();
+  try {
+    const old = ctx.storage.getJSON(KEY);
+    if (old == null) return {status:'MISSING', record};
+    if (old.schema !== 2) return {status:'INVALID', record};
+    for (const name of COUNTERS) {
+      if (Number.isSafeInteger(old[name]) && old[name] >= 0) record[name] = Math.min(old[name], 9999);
+    }
+    record.requestPresent = old.requestPresent === true;
+    record.responsePresent = old.responsePresent === true;
+    record.method = old.method === 'POST' ? 'POST' : 'OTHER';
+    record.readStatus = READ.includes(old.readStatus) ? old.readStatus : 'INVALID';
+    return {status:'READ_OK', record};
+  } catch { return {status:'READ_FAILED', record}; }
 }
 function matches(request) {
   try {
     const u = new URL(request.url);
-    return request.method === 'POST' && u.origin === 'https://m.client.10010.com' &&
-      !u.username && !u.password && u.pathname === '/mobileService/onLine.htm';
+    return u.origin === 'https://m.client.10010.com' && !u.username && !u.password &&
+      u.pathname === '/mobileService/onLine.htm';
   } catch { return false; }
 }
-async function requestFields(request) {
-  const out = flags(REQUEST_FIELDS);
-  const text = await request.text();
-  if (typeof text !== 'string' || text.length > 65536) return out;
-  const type = request.headers.get('content-type') || '';
-  if (type.split(';')[0].trim().toLowerCase() === 'application/x-www-form-urlencoded') {
-    const form = new URLSearchParams(text);
-    for (const name of REQUEST_FIELDS) out[name] = form.getAll(name).some(v => v.length > 0);
-  } else if (type.split(';')[0].trim().toLowerCase() === 'application/json') {
-    const data = JSON.parse(text);
-    for (const name of REQUEST_FIELDS) out[name] = data !== null && typeof data === 'object' &&
-      Object.hasOwn(data, name) && data[name] !== null && data[name] !== '';
-  }
-  return out;
-}
-function safeRead(ctx) {
-  const out = empty();
+function widget(ctx) {
+  let write = 'WRITE_FAILED', probeRead = 'READ_FAILED';
+  try { ctx.storage.setJSON(PROBE, {probe:true}); write = 'WRITE_OK'; } catch { /* Fixed status only. */ }
   try {
-    const old = ctx.storage.getJSON(KEY);
-    if (!old || old.schema !== 1) return out;
-    for (const name of ['requestSeen', 'responseSeen']) {
-      if (Number.isSafeInteger(old[name]) && old[name] >= 0) out[name] = Math.min(old[name], 9999);
-    }
-    for (const [group, names] of [['requestFields', REQUEST_FIELDS], ['responseFields', RESPONSE_FIELDS]]) {
-      for (const name of names) out[group][name] = old[group]?.[name] === true;
-    }
-    out.setCookie = old.setCookie === true;
-  } catch { /* Fixed default only. */ }
-  return out;
-}
-function widget(record) {
-  const count = fields => Object.values(fields).filter(v => v === true).length;
-  const req = record.requestFields;
-  const lines = ['联通在线 · 被动诊断',
-    `请求 ${record.requestSeen} / 响应 ${record.responseSeen}`,
-    `appId ${req.appId ? '有' : '无'} / token ${req.token_online ? '有' : '无'}`,
-    `请求字段 ${count(req)}/8 · 响应 ${count(record.responseFields)}/3`,
-    `Set-Cookie ${record.setCookie ? '有' : '无'} · 绑定 false`, 'UNBOUND_IDENTITY'];
-  return { type:'widget', padding:10, gap:4,
-    children:lines.map(text => ({type:'text', text, font:{size:11}, maxLines:1, minScale:0.6})) };
+    const probe = ctx.storage.getJSON(PROBE);
+    probeRead = probe == null ? 'MISSING' : probe.probe === true ? 'READ_OK' : 'INVALID';
+  } catch { /* Fixed status only. */ }
+  const {status, record:r} = read(ctx);
+  const lines = ['联通在线 · 入口诊断', `BUILD ${BUILD}`, `LOCAL ${write} ${probeRead}`,
+    '本地自检≠hook共享证明', `HOOK ${status}`];
+  if (status === 'READ_OK') lines.push(`请求 ${r.requestSeen} / 响应 ${r.responseSeen}`,
+    `POST ${r.postSeen} / OTHER ${r.otherSeen}`,
+    `request ${r.requestPresent} / response ${r.responsePresent}`,
+    `method ${r.method} / 上次读取 ${r.readStatus}`);
+  else lines.push('无可用hook记录（不等于未执行）');
+  return {type:'widget', padding:8, gap:2,
+    children:lines.map(text => ({type:'text', text, font:{size:10}, maxLines:1, minScale:0.6}))};
 }
 export default async function (ctx) {
-  if (!ctx.request) return widget(safeRead(ctx));
-  if (!matches(ctx.request)) return;
+  const kind = ctx.env?.DIAGNOSTIC_HOOK;
+  const isHook = kind === 'request' || kind === 'response' || !!ctx.request || !!ctx.response;
+  if (!isHook) return widget(ctx);
+  // A hook without request URL cannot be attributed to the reviewed endpoint.
+  if (!ctx.request || !matches(ctx.request)) return;
   try {
-    const record = safeRead(ctx);
-    if (ctx.response) {
-      record.responseSeen = Math.min(record.responseSeen + 1, 9999);
-      try {
-        const text = await ctx.response.text();
-        if (typeof text === 'string' && text.length <= 65536) {
-          const data = JSON.parse(text);
-          if (data !== null && typeof data === 'object' && !Array.isArray(data)) {
-            for (const name of RESPONSE_FIELDS) record.responseFields[name] ||= Object.hasOwn(data, name) &&
-              data[name] !== null && data[name] !== '';
-          }
-        }
-      } catch { /* Response field values never retained. */ }
-      try { record.setCookie ||= ctx.response.headers.has('set-cookie') === true; } catch { /* No header values read. */ }
-    } else {
-      record.requestSeen = Math.min(record.requestSeen + 1, 9999);
-      try {
-        const fields = await requestFields(ctx.request);
-        for (const name of REQUEST_FIELDS) record.requestFields[name] ||= fields[name];
-      } catch { /* Seen event remains evidence even when parsing fails. */ }
-    }
+    const {status, record} = read(ctx);
+    const counter = kind === 'response' || (!kind && ctx.response) ? 'responseSeen' : 'requestSeen';
+    record[counter] = Math.min(record[counter] + 1, 9999);
+    record.requestPresent = !!ctx.request;
+    record.responsePresent = !!ctx.response;
+    record.method = ctx.request.method === 'POST' ? 'POST' : 'OTHER';
+    const methodCounter = record.method === 'POST' ? 'postSeen' : 'otherSeen';
+    record[methodCounter] = Math.min(record[methodCounter] + 1, 9999);
+    record.readStatus = status;
     ctx.storage.setJSON(KEY, record);
-  } catch { /* Do not surface body, header or storage exception details. */ }
-  // Returning nothing leaves the intercepted traffic unchanged.
+  } catch { /* No error details and no traffic modification. Write failure cannot be shared reliably. */ }
 }

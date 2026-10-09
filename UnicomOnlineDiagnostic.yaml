@@ -1,22 +1,26 @@
-# 独立被动测试：与现有生产模块同时添加，不替换。
+# 独立入口测试：更新已有诊断模块，保留原生产模块，不重复添加。
 name: 联通在线被动诊断
-description: 仅观察在线接口字段存在，不保存凭据、不绑定账号、不主动刷新
+description: v2 仅观察入口与本地存储状态，不读取正文或头值、不主动刷新
 icon: magnifyingglass
 manual: https://github.com/liuweiqiang0523/egern-unicom-threecards/blob/main/ONLINE-DIAGNOSTIC.md
 scriptings:
   - http_request:
       name: unicom-online-diagnostic-request
+      env:
+        DIAGNOSTIC_HOOK: request
       match: '^https://m\.client\.10010\.com/mobileService/onLine\.htm(?:\?|$)'
       script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomOnlineDiagnostic.js
       timeout: 5
-      body_required: true
+      body_required: false
       max_size: 65536
   - http_response:
       name: unicom-online-diagnostic-response
+      env:
+        DIAGNOSTIC_HOOK: response
       match: '^https://m\.client\.10010\.com/mobileService/onLine\.htm(?:\?|$)'
       script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomOnlineDiagnostic.js
       timeout: 5
-      body_required: true
+      body_required: false
       max_size: 65536
   - generic:
       name: unicom-online-diagnostic-widget
