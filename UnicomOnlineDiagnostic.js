@@ -1,5 +1,5 @@
 // Passive entry evidence only. Never consume private payloads or modify traffic.
-export const BUILD = 'ONLINE_CONTROL_V3';
+export const BUILD = 'ONLINE_CONTROL_V3_1';
 const BASE = 'egern.unicom.online-diag.v3';
 const PROBE = `${BASE}.local-probe`;
 const HOOKS = new Map([
@@ -51,9 +51,12 @@ function widget(ctx) {
     children:lines.map(text => ({type:'text', text, font:{size:10}, maxLines:1, minScale:0.6}))};
 }
 export default async function (ctx) {
-  // Official script name, not env or request presence, classifies entry BEFORE guards.
+  // Official widgetFamily is generic-only; hook identity remains a fixed allowlist.
   const name = ctx.script?.name;
-  if (name === 'unicom-online-diagnostic-widget') return widget(ctx);
+  const genericContext = !ctx.request && !ctx.response;
+  const widgetFamily = ['systemSmall', 'systemMedium', 'systemLarge', 'systemExtraLarge',
+    'accessoryCircular', 'accessoryRectangular', 'accessoryInline'].includes(ctx.widgetFamily);
+  if (genericContext && (widgetFamily || name === 'unicom-online-diagnostic-widget')) return widget(ctx);
   const kind = HOOKS.get(name);
   if (!kind) return;
   const key = `${BASE}.${kind}`;

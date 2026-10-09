@@ -23,9 +23,22 @@ const key = i => `${BASE}.${paths[i]}`;
 test('v3 generic selfcheck distinguishes all three missing records and preserves v1/v2',async()=>{
  const f=fixture([['egern.unicom.online-diag.v1',{secret:'PRIVATE'}],['egern.unicom.online-diag.v2',{secret:'PRIVATE'}]]);
  const w=text(await generic(f.storage));
- assert.match(w,/BUILD ONLINE_CONTROL_V3/); assert.match(w,/LOCAL WRITE_OK READ_OK/);
+ assert.match(w,/BUILD ONLINE_CONTROL_V3_1/); assert.match(w,/LOCAL WRITE_OK READ_OK/);
  for(const p of paths) assert.ok(w.includes(`${p} MISSING`));
  assert.doesNotMatch(w,/入口 0|PRIVATE/); assert.ok(f.reads.every(k=>k.startsWith(BASE)));
+});
+test('generic widget families render without depending on exact script identity',async()=>{
+ for(const widgetFamily of ['systemSmall','systemMedium','systemLarge','systemExtraLarge','accessoryCircular','accessoryRectangular','accessoryInline']){
+  for(const name of ['module/unicom-online-diagnostic-widget','DIFFERENT',undefined]){
+   const f=fixture();
+   const w=await run({storage:f.storage,script:name?{name}:undefined,widgetFamily});
+   assert.equal(w?.type,'widget');
+   assert.match(text(w),/BUILD ONLINE_CONTROL_V3_1/);
+   assert.match(text(w),/LOCAL WRITE_OK READ_OK/);
+   assert.deepEqual(f.writes,[`${BASE}.local-probe`]);
+   assert.doesNotMatch(JSON.stringify([...f.saved]),/module\/|DIFFERENT/);
+  }
+ }
 });
 test('script-name classification records independent safe entries before any URL/context guard',async()=>{
  const f=fixture();
@@ -41,6 +54,22 @@ test('only the three fixed script names register hooks; missing script never reg
   assert.equal(await run({storage:f.storage,script:name?{name}:undefined,env:{DIAGNOSTIC_HOOK:'request'},request:req(),response:{}}),undefined);
  }
  assert.deepEqual(f.writes,[]);assert.deepEqual(f.reads,[]);
+});
+test('request or response contexts never become widgets or unknown hook writes',async()=>{
+ for(const name of [undefined,'OTHER','module/unicom-online-diagnostic-widget','unicom-online-diagnostic-widget']){
+  for(const context of [{request:req()},{response:{}},{request:req(),response:{}}]){
+   const f=fixture();
+   assert.equal(await run({storage:f.storage,script:name?{name}:undefined,widgetFamily:'systemMedium',...context}),undefined);
+   assert.deepEqual(f.reads,[]);assert.deepEqual(f.writes,[]);
+  }
+ }
+});
+test('unknown generic context requires a recognized widget family',async()=>{
+ for(const widgetFamily of [undefined,'INVALID','__proto__']){
+  const f=fixture();
+  assert.equal(await run({storage:f.storage,script:{name:'OTHER'},widgetFamily}),undefined);
+  assert.deepEqual(f.reads,[]);assert.deepEqual(f.writes,[]);
+ }
 });
 test('matching endpoints are passive, bounded and never inspect secrets or modify traffic',async()=>{
  const f=fixture();
