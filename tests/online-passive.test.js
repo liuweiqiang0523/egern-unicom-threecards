@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import run from '../UnicomOnlineDiagnostic.js';
 const BASE = 'egern.unicom.online-diag.v3';
 const names = ['unicom-online-diagnostic-request','unicom-online-diagnostic-response','unicom-online-diagnostic-balance-response'];
@@ -114,6 +115,18 @@ test('module adds exactly one balance response control with no overlapping produ
  assert.match(m,/name: unicom-online-diagnostic-balance-response/);assert.match(m,/mobileserviceimportant\/home\/queryUserInfoSeven/);
  assert.doesNotMatch(m,/DIAGNOSTIC_HOOK|login\.htm|UnicomThreeCards\.js|schedule:|body_required: true/);
  for(const n of names)assert.ok(m.includes(`name: ${n}`));
+});
+test('cache-busted v3.1 module pins all four scripts and preserves the old module contract',()=>{
+ const file=new URL('../UnicomOnlineDiagnostic-V3-1.yaml',import.meta.url);
+ const parsed=JSON.parse(execFileSync('ruby',['-rjson','-ryaml','-e','puts JSON.generate(YAML.load_file(ARGV[0]))',file.pathname],{encoding:'utf8'}));
+ const previous=JSON.parse(execFileSync('ruby',['-rjson','-ryaml','-e','puts JSON.generate(YAML.load_file(ARGV[0]))',new URL('../UnicomOnlineDiagnostic-V3.yaml',import.meta.url).pathname],{encoding:'utf8'}));
+ const scripts=parsed.scriptings.map(entry=>Object.values(entry)[0]);
+ assert.equal(scripts.length,4);
+ const url='https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/1e3439b4001eb19a9663ec829466f6028e6139a7/UnicomOnlineDiagnostic.js';
+ assert.ok(scripts.every(s=>s.script_url===url));
+ for(const entry of [...parsed.scriptings,...previous.scriptings]) delete Object.values(entry)[0].script_url;
+ delete parsed.description;delete previous.description;
+ assert.deepEqual(parsed,previous);
 });
 test('diagnostic contains no outbound API, credentials, logs, notifications or traffic mutation',()=>{
  const s=readFileSync(new URL('../UnicomOnlineDiagnostic.js',import.meta.url),'utf8');

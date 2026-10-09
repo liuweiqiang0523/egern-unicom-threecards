@@ -1,0 +1,38 @@
+# 更新已有诊断模块，不重复添加；生产 request 捕获不变。
+name: 联通在线被动诊断
+description: v3.1 generic 入口兼容；仅入口和余额响应对照，不读正文或头值、不主动刷新
+icon: magnifyingglass
+manual: https://github.com/liuweiqiang0523/egern-unicom-threecards/blob/main/ONLINE-DIAGNOSTIC.md
+scriptings:
+  - http_request:
+      name: unicom-online-diagnostic-request
+      match: '^https://m\.client\.10010\.com/mobileService/onLine\.htm(?:\?|$)'
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/1e3439b4001eb19a9663ec829466f6028e6139a7/UnicomOnlineDiagnostic.js
+      timeout: 5
+      body_required: false
+      max_size: 65536
+  - http_response:
+      name: unicom-online-diagnostic-response
+      match: '^https://m\.client\.10010\.com/mobileService/onLine\.htm(?:\?|$)'
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/1e3439b4001eb19a9663ec829466f6028e6139a7/UnicomOnlineDiagnostic.js
+      timeout: 5
+      body_required: false
+      max_size: 65536
+  - http_response:
+      name: unicom-online-diagnostic-balance-response
+      match: '^https://m\.client\.10010\.com/mobileserviceimportant/home/queryUserInfoSeven(?:\?|$)'
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/1e3439b4001eb19a9663ec829466f6028e6139a7/UnicomOnlineDiagnostic.js
+      timeout: 5
+      body_required: false
+      max_size: 65536
+  - generic:
+      name: unicom-online-diagnostic-widget
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/1e3439b4001eb19a9663ec829466f6028e6139a7/UnicomOnlineDiagnostic.js
+      timeout: 5
+widgets:
+  - name: 联通在线 · 被动诊断
+    script_name: unicom-online-diagnostic-widget
+mitm:
+  hostnames:
+    includes:
+      - m.client.10010.com
