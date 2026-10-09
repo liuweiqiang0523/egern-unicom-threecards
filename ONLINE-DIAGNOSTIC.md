@@ -1,36 +1,45 @@
-# 联通在线被动诊断 v2：只查入口与存储
+# 联通在线被动诊断 v3：最小余额响应阳性对照
 
-模块地址（不变）：
+模块地址保持不变：
 
 https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomOnlineDiagnostic.yaml
 
-## 手机只做这三步
+## 手机只做一次正常查询
 
-1. 在 Egern 更新**已有「联通在线被动诊断」模块**，不要重复添加第二份；保留原中国联通生产模块，继续启用。若尚未安装诊断模块才额外添加一次。诊断组件名称仍为「联通在线 · 被动诊断」。
-2. 打开诊断组件（建议中号）刷新，先确认出现 **BUILD ONLINE_ENTRANCE_V2**。若未出现，说明当前组件还未运行这版 JS，先更新原诊断模块和脚本，不通过重复安装解决。
-3. 联通 App **正常启动一次或正常刷新首页一次**即可，再刷新诊断组件，只发该组件安全截图。无需继续切三卡、反复杀进程、退出登录或重新登录；不要开启抓包日志，不要发原始请求/响应、头、Cookie、token、设备信息或手机号。
+1. 更新**已有「联通在线被动诊断」模块**，不要重复添加或替换生产模块，生产中国联通模块继续保留。
+2. 同时更新该诊断的远程脚本，打开诊断组件确认 **BUILD ONLINE_CONTROL_V3**。官方模块和脚本配置分别有 `update_interval`（默认一天），更新模块不证明所有 hook 的 JS 已更新；generic 的 BUILD 也不证明各 hook 已运行新版。使用当前 Egern 提供的模块/脚本更新入口；不同版本 UI 位置可能不同，本说明不臆造按钮或开关。未见 BUILD 时先处理加载，不重复安装。
+3. 只等待联通 App **正常查一次余额/正常刷新首页余额**，再查看诊断组件，分享安全截图即可。无需重登、反复切三卡或杀进程，不开启日志，不发送原始 URL、请求/响应、头、手机号、Cookie、token 或设备信息。
 
-这不是手机问题已修复，而是把原来混成 0/0 的情况拆开。正常操作也不保证 App 会发送 onLine；本轮不加余额接口阳性对照、不执行登录或主动刷新。
+v2 的 LOCAL WRITE_OK READ_OK / HOOK MISSING 以及重登后仍缺记录，均未证明根因。本轮只新增生产已知余额端点的一个 **http_response** 对照，不增加余额 request hook，避免与生产 request 捕获重叠；没有主动登录/刷新调用。
 
-## 结果怎么读
+## 固定状态含义
 
-- `BUILD ONLINE_ENTRANCE_V2`：仅证明当前 generic 组件运行了 v2，不证明 request/response hook 已更新或执行。
-- `LOCAL WRITE_OK/WRITE_FAILED` 与 `READ_OK/READ_FAILED/MISSING/INVALID`：generic 对固定 `{probe:true}` 做同次本地写读。**本地自检≠hook共享证明**；写失败时即使读到旧探针也不能称写入成功。
-- `HOOK READ_OK`：当前组件能读到格式版本匹配的 v2 记录。`MISSING` 是没有记录，`READ_FAILED` 是读取抛错，`INVALID` 是记录版本不匹配。没有可用记录时不再显示误导性的 0/0；这些状态仍不能区分 hook 未执行、URL/request 上下文缺失、hook 写失败、加载/MITM 或存储作用域不同。
-- 只有可读记录才显示请求/响应入口累计数、`POST/OTHER` 分类累计数、最近一次 `request/response` 存在布尔及最近方法（只有 POST 或 OTHER）。先记录精确端点入口，不再因不是 POST 就跳过。入口计数不是账号数、登录成功数或成功刷新次数；各计数封顶 9999，并发写入不保证精确。
-- `上次读取 READ_OK/MISSING/READ_FAILED/INVALID`：最近一次 hook 在保存前读取旧记录的固定状态。hook 写失败时不能可靠把失败码交给另一个上下文，因此不会假装能够从组件判断每次 hook 写入结果。
-- explicit response hook 缺少 request URL 时不能确认属于审查过的端点，不记入口，也不运行 generic 探针。`response false` 可显示已知 response hook 缺少 response 的情况，但不能因此归因运行时问题。
+- `BUILD ONLINE_CONTROL_V3`：当前 generic 脚本版本；不是手机修复证明。
+- `LOCAL WRITE_OK/WRITE_FAILED` 和 `READ_OK/READ_FAILED/MISSING/INVALID`：generic 的固定 `{probe:true}` 同次本地自检。**本地自检≠hook共享证明**，读到旧探针也不能覆盖写失败。
+- 三条路径各自显示 `online-request`、`online-response`、`balance-response` 的 `READ_OK/MISSING/READ_FAILED/INVALID`。`MISSING` 只表示组件未读到该独立记录；`READ_FAILED` 是读取抛错；`INVALID` 是版本不匹配；缺记录不显示误导性 0 次。
+- 可读记录显示 `入口`（累计调用次数，封顶9999，不是账号数/成功数，并发不保证精确）和 `CONTEXT_OK/CONTEXT_INVALID`。入口由官方 **ctx.script.name** 的三个固定名字先分类，立即保存安全计数，再做 URL/context 检查。因而缺 request、错误 URL 或缺 response 也能留下 `CONTEXT_INVALID`，不再与缺记录混为一谈。没有/未知 script.name 不登记在线命中，也不假装 generic。
+- `requestPresent/responsePresent`（组件简写 request/response）只表示对象是否存在；`urlMatch` 只表示内存中精确 HTTPS origin/path 匹配；响应 hook 还需 response 存在才 `CONTEXT_OK`。均不说明认证、响应成功或凭据可用。
+- `writeReadbackOK` 表示该 hook 在同次调用中对前一安全写入成功读回且白名单字段一致；不是最后一次状态保存成功保证、不是跨 hook/组件共享证明。最终写失败无法可靠由另一个上下文报告，可能只看到较早的安全记录，false 不单独证明 storage 故障。
 
-## 安全和隔离
+## 下一步分支（不猜新端点）
 
-仅匹配 HTTPS `m.client.10010.com/mobileService/onLine.htm` 的既有精确 origin/path；不新增其他域名或路径。两类 hook 的 `body_required: false`，JS **不读取任何正文、头值、Cookie、token、appId、设备或号码字段**，不保存或打印原 URL/查询参数，不主动联网、不日志、不通知、不改写流量。
+- 对照 READ_OK + CONTEXT_OK，在线 MISSING：只支持“组件可见余额响应 hook 证据，而在线 hook 暂无可见记录”；不证明 App 没有 onLine，也不排除在线脚本单独缓存、加载/匹配/存储差异。
+- 任一路径 READ_OK + CONTEXT_INVALID：该固定脚本已产生可见入口记录，但上下文未满足检查；不要把它当作余额或 onLine 成功。
+- **余额对照与两个在线路径均 MISSING：停止猜端点、停止重登/反复切卡。** 下一步需要安全的脚本注册/加载证据：仅诊断模块是否启用、三个固定脚本名/类型是否注册、它们是否使用本诊断 JS、组件 BUILD。截图先遮住其他脚本私人 URL/参数及账号信息；不要原始网络日志。
+- READ_FAILED/INVALID：先确认读取/版本与加载状态，不据此修改生产凭据。
 
-三个 script_url 保持完全相同。固定 v2 记录键 `egern.unicom.online-diag.v2`，generic 布尔探针键 `egern.unicom.online-diag.v2.local-probe`；读入记录再按白名单重建，计数安全有界，状态仅固定枚举。原 `egern.unicom.online-diag.v1` 字段存在记录完整保留但不读取、不展示为当前证据；不读取/改写生产 slot 或凭据。此新诊断 URL 的 hook 与组件存储是否共享仍须 iPhone 验证，Node 共享 Map 不是证明。
+## 安全隔离与响应重叠限制
 
-保持既有 MITM host，不更改证书、不关闭 TLS 验证、不绕过证书锁定。App 异常时立即禁用该诊断模块，保留原生产模块并停止测试。
+仅观察同一既有域名 `m.client.10010.com`，精确路径 `/mobileService/onLine.htm` 与生产已用 `/mobileserviceimportant/home/queryUserInfoSeven`。保留既有 MITM host；不改证书、不关闭 TLS、不绕过锁定。App 异常时立即禁用诊断模块并停止。
+
+三个 hook 均 `body_required:false`。JS 不读正文、头、方法、手机号或凭据值；只为精确 origin/path 检查在内存读取 URL，绝不保存或输出 URL/查询参数。没有联网、日志、通知、流量修改。四个脚本复用完全相同且不变的诊断 JS URL。
+
+官方说明启用模块会合并到主配置，未在所引用文档中保证多模块相同 URL 响应脚本的运行顺序、叠加或优先级。生产本项目只有余额 request 捕获，本次对照是 response，但**用户其他模块未知**，仍可能有余额 response 重叠。不能承诺所有响应 hook 同时执行，不能以对照缺记录推断网络端点不存在。不要为测试擅自关掉其他生产模块。
+
+固定独立键为 `egern.unicom.online-diag.v3.online-request`、`.online-response`、`.balance-response`，探针为 `egern.unicom.online-diag.v3.local-probe`。记录只含 schema=3、entrySeen、四个布尔及固定 contextStatus；读入后按白名单重建。v1/v2 记录保留但不读取、不作为本轮证据，不读取/改写生产 slot。可见安全记录不是已捕获刷新凭据，本轮没有账号绑定或主动刷新实现。
 
 ## 回退与验证边界
 
-禁用/删除诊断模块即可停止观察，不保证删除固定安全记录。发布前已建立 v1 备份分支；旧记录没有凭据值，v2 也不收集凭据。测试、CI 和远程文件校验只证明逻辑/配置/发布一致性，不能证明真机端点已经触发、0/0 根因已定位或三卡长期并存已恢复。
+修改前保留备份分支 `backup/online-diagnostic-before-v3-cac8cba`。禁用诊断即可停止观察，安全记录不保证被删除。生产 JS/YAML、UI、缓存与凭据均未改动。Node mock、浏览器生产回归、YAML 解析、同 SHA CI 和远程字节核对不证明 iPhone hook 已触发、根因已定位或三卡会话长期恢复。
 
-官方依据：[脚本配置](https://egernapp.com/docs/configuration/scriptings)、[JavaScript API](https://egernapp.com/docs/javascript-api/)、[组件](https://egernapp.com/docs/configuration/widgets)。
+官方依据：[JavaScript API（ctx.script.name、storage、pass-through）](https://egernapp.com/docs/javascript-api/)、[脚本（body_required、独立 update_interval）](https://egernapp.com/docs/configuration/scriptings)、[模块（合并与独立更新周期）](https://egernapp.com/docs/configuration/modules)。

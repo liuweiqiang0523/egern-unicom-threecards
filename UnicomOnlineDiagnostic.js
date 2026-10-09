@@ -1,70 +1,80 @@
-// Entrance only: never read bodies or headers, infer identities or send requests.
-export const BUILD = 'ONLINE_ENTRANCE_V2';
-const KEY = 'egern.unicom.online-diag.v2';
-const PROBE = `${KEY}.local-probe`;
-const COUNTERS = ['requestSeen', 'responseSeen', 'postSeen', 'otherSeen'];
-const READ = ['READ_OK', 'MISSING', 'READ_FAILED', 'INVALID'];
+// Passive entry evidence only. Never consume private payloads or modify traffic.
+export const BUILD = 'ONLINE_CONTROL_V3';
+const BASE = 'egern.unicom.online-diag.v3';
+const PROBE = `${BASE}.local-probe`;
+const HOOKS = new Map([
+  ['unicom-online-diagnostic-request', 'online-request'],
+  ['unicom-online-diagnostic-response', 'online-response'],
+  ['unicom-online-diagnostic-balance-response', 'balance-response'],
+]);
+const BOOLS = ['requestPresent', 'responsePresent', 'urlMatch', 'writeReadbackOK'];
+const CONTEXT = ['CONTEXT_OK', 'CONTEXT_INVALID'];
 function empty() {
-  return {schema:2, requestSeen:0, responseSeen:0, postSeen:0, otherSeen:0,
-    requestPresent:false, responsePresent:false, method:'OTHER', readStatus:'MISSING'};
+  return {schema:3, entrySeen:0, requestPresent:false, responsePresent:false,
+    urlMatch:false, writeReadbackOK:false, contextStatus:'CONTEXT_INVALID'};
 }
-function read(ctx) {
+function read(ctx, key) {
   const record = empty();
   try {
-    const old = ctx.storage.getJSON(KEY);
+    const old = ctx.storage.getJSON(key);
     if (old == null) return {status:'MISSING', record};
-    if (old.schema !== 2) return {status:'INVALID', record};
-    for (const name of COUNTERS) {
-      if (Number.isSafeInteger(old[name]) && old[name] >= 0) record[name] = Math.min(old[name], 9999);
-    }
-    record.requestPresent = old.requestPresent === true;
-    record.responsePresent = old.responsePresent === true;
-    record.method = old.method === 'POST' ? 'POST' : 'OTHER';
-    record.readStatus = READ.includes(old.readStatus) ? old.readStatus : 'INVALID';
+    if (old.schema !== 3) return {status:'INVALID', record};
+    if (Number.isSafeInteger(old.entrySeen) && old.entrySeen >= 0) record.entrySeen = Math.min(old.entrySeen, 9999);
+    for (const name of BOOLS) record[name] = old[name] === true;
+    record.contextStatus = CONTEXT.includes(old.contextStatus) ? old.contextStatus : 'CONTEXT_INVALID';
     return {status:'READ_OK', record};
   } catch { return {status:'READ_FAILED', record}; }
 }
-function matches(request) {
+function matches(request, kind) {
   try {
     const u = new URL(request.url);
-    return u.origin === 'https://m.client.10010.com' && !u.username && !u.password &&
-      u.pathname === '/mobileService/onLine.htm';
+    const path = kind === 'balance-response' ? '/mobileserviceimportant/home/queryUserInfoSeven' : '/mobileService/onLine.htm';
+    return u.origin === 'https://m.client.10010.com' && !u.username && !u.password && u.pathname === path;
   } catch { return false; }
 }
 function widget(ctx) {
   let write = 'WRITE_FAILED', probeRead = 'READ_FAILED';
-  try { ctx.storage.setJSON(PROBE, {probe:true}); write = 'WRITE_OK'; } catch { /* Fixed status only. */ }
+  try { ctx.storage.setJSON(PROBE, {probe:true}); write = 'WRITE_OK'; } catch { /* Fixed statuses only. */ }
   try {
     const probe = ctx.storage.getJSON(PROBE);
     probeRead = probe == null ? 'MISSING' : probe.probe === true ? 'READ_OK' : 'INVALID';
-  } catch { /* Fixed status only. */ }
-  const {status, record:r} = read(ctx);
-  const lines = ['联通在线 · 入口诊断', `BUILD ${BUILD}`, `LOCAL ${write} ${probeRead}`,
-    '本地自检≠hook共享证明', `HOOK ${status}`];
-  if (status === 'READ_OK') lines.push(`请求 ${r.requestSeen} / 响应 ${r.responseSeen}`,
-    `POST ${r.postSeen} / OTHER ${r.otherSeen}`,
-    `request ${r.requestPresent} / response ${r.responsePresent}`,
-    `method ${r.method} / 上次读取 ${r.readStatus}`);
-  else lines.push('无可用hook记录（不等于未执行）');
+  } catch { /* No exception details. */ }
+  const lines = ['联通在线 · 响应对照', `BUILD ${BUILD}`, `LOCAL ${write} ${probeRead}`, '本地自检≠hook共享证明'];
+  for (const kind of HOOKS.values()) {
+    const {status, record:r} = read(ctx, `${BASE}.${kind}`);
+    lines.push(`${kind} ${status}`);
+    if (status === 'READ_OK') lines.push(`入口 ${r.entrySeen} ${r.contextStatus}`,
+      `request ${r.requestPresent} / response ${r.responsePresent}`,
+      `urlMatch ${r.urlMatch} / writeReadbackOK ${r.writeReadbackOK}`);
+  }
   return {type:'widget', padding:8, gap:2,
     children:lines.map(text => ({type:'text', text, font:{size:10}, maxLines:1, minScale:0.6}))};
 }
 export default async function (ctx) {
-  const kind = ctx.env?.DIAGNOSTIC_HOOK;
-  const isHook = kind === 'request' || kind === 'response' || !!ctx.request || !!ctx.response;
-  if (!isHook) return widget(ctx);
-  // A hook without request URL cannot be attributed to the reviewed endpoint.
-  if (!ctx.request || !matches(ctx.request)) return;
+  // Official script name, not env or request presence, classifies entry BEFORE guards.
+  const name = ctx.script?.name;
+  if (name === 'unicom-online-diagnostic-widget') return widget(ctx);
+  const kind = HOOKS.get(name);
+  if (!kind) return;
+  const key = `${BASE}.${kind}`;
   try {
-    const {status, record} = read(ctx);
-    const counter = kind === 'response' || (!kind && ctx.response) ? 'responseSeen' : 'requestSeen';
-    record[counter] = Math.min(record[counter] + 1, 9999);
+    const {record} = read(ctx, key);
+    record.entrySeen = Math.min(record.entrySeen + 1, 9999);
     record.requestPresent = !!ctx.request;
     record.responsePresent = !!ctx.response;
-    record.method = ctx.request.method === 'POST' ? 'POST' : 'OTHER';
-    const methodCounter = record.method === 'POST' ? 'postSeen' : 'otherSeen';
-    record[methodCounter] = Math.min(record[methodCounter] + 1, 9999);
-    record.readStatus = status;
-    ctx.storage.setJSON(KEY, record);
-  } catch { /* No error details and no traffic modification. Write failure cannot be shared reliably. */ }
+    record.urlMatch = false;
+    record.writeReadbackOK = false;
+    record.contextStatus = 'CONTEXT_INVALID';
+    // Persist safe invocation evidence even when request URL/context is unavailable.
+    ctx.storage.setJSON(key, record);
+    record.urlMatch = matches(ctx.request, kind);
+    record.contextStatus = record.urlMatch && record.requestPresent &&
+      (kind === 'online-request' || record.responsePresent) ? 'CONTEXT_OK' : 'CONTEXT_INVALID';
+    ctx.storage.setJSON(key, record);
+    const check = read(ctx, key);
+    record.writeReadbackOK = check.status === 'READ_OK' &&
+      Object.keys(record).every(field => check.record[field] === record[field]);
+    // True describes the preceding same-hook readback, not this final write or cross-hook sharing.
+    ctx.storage.setJSON(key, record);
+  } catch { /* Pass through; a failed final write cannot reliably be reported elsewhere. */ }
 }

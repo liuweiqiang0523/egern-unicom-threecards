@@ -1,13 +1,11 @@
-# 独立入口测试：更新已有诊断模块，保留原生产模块，不重复添加。
+# 更新已有诊断模块，不重复添加；生产 request 捕获不变。
 name: 联通在线被动诊断
-description: v2 仅观察入口与本地存储状态，不读取正文或头值、不主动刷新
+description: v3 仅入口和余额响应对照，不读正文或头值、不主动刷新
 icon: magnifyingglass
 manual: https://github.com/liuweiqiang0523/egern-unicom-threecards/blob/main/ONLINE-DIAGNOSTIC.md
 scriptings:
   - http_request:
       name: unicom-online-diagnostic-request
-      env:
-        DIAGNOSTIC_HOOK: request
       match: '^https://m\.client\.10010\.com/mobileService/onLine\.htm(?:\?|$)'
       script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomOnlineDiagnostic.js
       timeout: 5
@@ -15,9 +13,14 @@ scriptings:
       max_size: 65536
   - http_response:
       name: unicom-online-diagnostic-response
-      env:
-        DIAGNOSTIC_HOOK: response
       match: '^https://m\.client\.10010\.com/mobileService/onLine\.htm(?:\?|$)'
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomOnlineDiagnostic.js
+      timeout: 5
+      body_required: false
+      max_size: 65536
+  - http_response:
+      name: unicom-online-diagnostic-balance-response
+      match: '^https://m\.client\.10010\.com/mobileserviceimportant/home/queryUserInfoSeven(?:\?|$)'
       script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/main/UnicomOnlineDiagnostic.js
       timeout: 5
       body_required: false
