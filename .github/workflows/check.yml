@@ -17,6 +17,10 @@ jobs:
         with:
           ruby-version: '3.3'
       - run: npm run check
+      - name: Check isolated passive diagnostic
+        run: |
+          node --check UnicomOnlineDiagnostic.js
+          ruby -e 'require "yaml"; YAML.load_file("UnicomOnlineDiagnostic.yaml"); puts "YAML_OK UnicomOnlineDiagnostic.yaml"'
       - run: npm test
       - name: Fixed-frame adaptive browser regression
         run: |
