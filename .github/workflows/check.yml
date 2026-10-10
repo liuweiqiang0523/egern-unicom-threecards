@@ -21,6 +21,10 @@ jobs:
         run: |
           node --check UnicomOnlineDiagnostic.js
           ruby -e 'require "yaml"; YAML.load_file("UnicomOnlineDiagnostic.yaml"); puts "YAML_OK UnicomOnlineDiagnostic.yaml"'
+      - name: Check isolated local seed experiment
+        run: |
+          node --check UnicomLocalSeed.js
+          ruby -e 'require "yaml"; YAML.load_file("UnicomLocalSeed-V1.yaml"); puts "YAML_OK UnicomLocalSeed-V1.yaml"'
       - run: npm test
       - name: Fixed-frame adaptive browser regression
         run: |

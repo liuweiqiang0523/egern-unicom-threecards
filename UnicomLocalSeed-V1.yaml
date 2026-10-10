@@ -1,0 +1,31 @@
+# 先禁用旧在线诊断模块；保留生产模块。只做单卡被动绑定，没有主动续期。
+name: 联通单卡本地种子实验
+description: 单卡本机 token/appId/ecs 精确绑定；不保存密码验证码，不上传不续期
+icon: lock.shield
+manual: https://github.com/liuweiqiang0523/egern-unicom-threecards/blob/main/LOCAL-SEED.md
+scriptings:
+  - http_response:
+      name: unicom-local-seed-login-response-v1
+      match: '^https://m\.client\.10010\.com/mobileService/login\.htm(?:\?|$)'
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/04c4268488126022b7e40a02cc3669f6687bb29c/UnicomLocalSeed.js
+      timeout: 5
+      body_required: true
+      max_size: 65536
+  - http_response:
+      name: unicom-local-seed-balance-response-v1
+      match: '^https://m\.client\.10010\.com/mobileserviceimportant/home/queryUserInfoSeven(?:\?|$)'
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/04c4268488126022b7e40a02cc3669f6687bb29c/UnicomLocalSeed.js
+      timeout: 5
+      body_required: false
+      max_size: 65536
+  - generic:
+      name: unicom-local-seed-widget-v1
+      script_url: https://raw.githubusercontent.com/liuweiqiang0523/egern-unicom-threecards/04c4268488126022b7e40a02cc3669f6687bb29c/UnicomLocalSeed.js
+      timeout: 5
+widgets:
+  - name: 联通单卡 · 本地种子
+    script_name: unicom-local-seed-widget-v1
+mitm:
+  hostnames:
+    includes:
+      - m.client.10010.com
